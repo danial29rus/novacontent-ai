@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Nova Content AI — студия контента и AI-инструментов для авторов и команд.">
+  <title>Nova Content AI — студия контента</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <div class="ambient ambient-one" aria-hidden="true"></div>
+  <div class="ambient ambient-two" aria-hidden="true"></div>
+
+  <header class="header shell">
+    <a class="brand" href="#top" aria-label="Nova Content AI">
+      <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
+      <span>nova<span>content</span></span>
+    </a>
+    <button class="mobile-menu" type="button" aria-label="Открыть меню" aria-expanded="false">☰</button>
+    <nav class="nav" aria-label="Основная навигация">
+      <a href="#tools">Инструменты</a>
+      <a href="#how">Как работает</a>
+      <a href="#pricing">Тарифы</a>
+      <a href="#safety">Для бизнеса</a>
+    </nav>
+    <div class="header-actions">
+      <button class="text-button open-dashboard" type="button">Войти</button>
+      <button class="button button-small scroll-to-demo" type="button">Попробовать <span>→</span></button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy reveal">
+        <p class="eyebrow"><span class="pulse"></span> AI-студия для авторов и команд</p>
+        <h1>Контент, который<br><em>не звучит как робот.</em></h1>
+        <p class="hero-text">Посты, сценарии, контент-планы и упаковка идей — в одном спокойном рабочем пространстве.</p>
+        <div class="hero-actions">
+          <button class="button scroll-to-demo" type="button">Собрать первый материал <span>↗</span></button>
+          <a class="link-button" href="#tools">Посмотреть возможности <span>↓</span></a>
+        </div>
+        <div class="hero-meta">
+          <div class="avatars" aria-hidden="true"><b>А</b><b>М</b><b>К</b><b>+</b></div>
+          <p>Создано для тех, кто<br>ведёт каналы и бренды</p>
+        </div>
+      </div>
+
+      <div class="hero-visual reveal" aria-label="Демонстрация интерфейса Nova Content AI">
+        <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+        <div class="workspace-card">
+          <div class="card-top"><span class="window-dots"><i></i><i></i><i></i></span><span class="mini-label">CONTENT LAB / НОВЫЙ ПРОЕКТ</span><span class="more">•••</span></div>
+          <div class="workspace-inner">
+            <div class="workspace-side"><span class="side-active">✦</span><span>▣</span><span>◌</span><span>⌁</span></div>
+            <div class="workspace-main">
+              <div class="project-breadcrumb">Проекты / <b>Кофейня «Маяк»</b></div>
+              <h3>Идеи на эту неделю</h3>
+              <div class="idea-row"><span class="idea-icon lavender">✦</span><div><b>Пост-знакомство</b><small>Telegram · сегодня</small></div><span class="ready">Готово</span></div>
+              <div class="idea-row"><span class="idea-icon aqua">⌁</span><div><b>Сценарий Reels</b><small>Видео · завтра</small></div><span class="progress-line"><i></i></span></div>
+              <div class="idea-row faded"><span class="idea-icon orange">▤</span><div><b>Контент-план</b><small>30 идей · октябрь</small></div><span>→</span></div>
+              <div class="assistant-bar"><span class="spark">✦</span><span>Опиши задачу для контента...</span><button aria-label="Отправить">↑</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="floating-note note-one"><span>↗</span><b>+ 12 идей</b><small>для твоего плана</small></div>
+        <div class="floating-note note-two"><span class="dot-green"></span><b>Тон бренда</b><small>сохранён</small></div>
+      </div>
+    </section>
+
+    <section class="ticker" aria-label="Категории услуг">
+      <div class="ticker-track"><span>ПОСТЫ ДЛЯ СОЦСЕТЕЙ</span><i>✦</i><span>СЦЕНАРИИ ВИДЕО</span><i>✦</i><span>КОНТЕНТ-ПЛАНЫ</span><i>✦</i><span>УПАКОВКА БРЕНДА</span><i>✦</i><span>ПОСТЫ ДЛЯ СОЦСЕТЕЙ</span><i>✦</i><span>СЦЕНАРИИ ВИДЕО</span><i>✦</i></div>
+    </section>
+
+    <section class="tools-section shell" id="tools">
+      <div class="section-heading reveal"><div><p class="eyebrow">01 / Возможности</p><h2>Не просто чат.<br>Рабочие <em>сценарии.</em></h2></div><p>Каждый инструмент знает, каким должен быть готовый материал: от первой идеи до публикации.</p></div>
+      <div class="tool-grid">
+        <article class="tool-card tool-featured reveal" data-tool="post"><div class="tool-number">01</div><div class="tool-icon">✦</div><h3>Пост-студия</h3><p>Собирает публикацию из темы, задачи и голоса бренда.</p><button class="tool-action" type="button">Создать пост <span>↗</span></button><div class="card-mesh"></div></article>
+        <article class="tool-card reveal" data-tool="plan"><div class="tool-number">02</div><div class="tool-icon icon-blue">◫</div><h3>Контент-план</h3><p>Находит рубрики и идеи, которые не повторяются через день.</p><button class="tool-action" type="button">Собрать план <span>↗</span></button></article>
+        <article class="tool-card reveal" data-tool="video"><div class="tool-number">03</div><div class="tool-icon icon-orange">▷</div><h3>Видео-сценарий</h3><p>Хук, структура, кадры и фраза, ради которой досматривают.</p><button class="tool-action" type="button">Написать сценарий <span>↗</span></button></article>
+        <article class="tool-card reveal" data-tool="rewrite"><div class="tool-number">04</div><div class="tool-icon icon-pink">⌁</div><h3>Редактор тона</h3><p>Переписывает черновик: человечнее, короче, смелее.</p><button class="tool-action" type="button">Улучшить текст <span>↗</span></button></article>
+        <article class="tool-card wide-card reveal" data-tool="brief"><div><div class="tool-number">05</div><h3>Упаковка идеи</h3><p>Превращает разрозненную мысль в понятный бриф для дизайна, съёмки или команды.</p><button class="tool-action" type="button">Открыть бриф <span>↗</span></button></div><div class="brief-preview"><p>Задача</p><b>Сделать запуск<br>ощутимым.</b><span></span><small>4 блока готово</small></div></article>
+      </div>
+    </section>
+
+    <section class="demo-section" id="demo">
+      <div class="shell demo-layout reveal">
+        <div class="demo-intro"><p class="eyebrow">02 / Рабочее пространство</p><h2>Поймай<br>свой <em>ритм.</em></h2><p>После входа материал сохраняется в вашем кабинете и списывает одно действие только при готовом результате.</p><div class="demo-status"><span></span> Локальный режим активен</div></div>
+        <div class="generator">
+          <div class="generator-tabs" role="tablist"><button class="active" data-demo-tool="post" role="tab">Пост</button><button data-demo-tool="plan" role="tab">План</button><button data-demo-tool="rewrite" role="tab">Тон</button></div>
+          <label for="prompt">Что нужно сделать?</label>
+          <textarea id="prompt" maxlength="280" placeholder="Например: пост для кофейни о первом холодном утре октября"></textarea>
+          <div class="generator-fields"><label>Площадка <select id="platform"><option>Telegram</option><option>Instagram</option><option>VK</option><option>Блог</option></select></label><label>Тон <select id="tone"><option>Дружелюбный</option><option>Экспертный</option><option>Смелый</option><option>Простой</option></select></label></div>
+          <div class="generation-settings"><span id="active-project-label">Проект не выбран</span><label>Уровень <select id="model-tier"><option value="swift">Быстрый · 1 Action</option><option value="studio">Студийный · 3 Actions</option><option value="deep">Глубокий · 6 Actions</option></select></label></div>
+          <div class="generator-bottom"><span id="prompt-count">0 / 280</span><button class="button generate" type="button">Собрать материал <span>↑</span></button></div>
+          <div class="demo-result empty" id="demo-result"><div class="result-icon">✦</div><div><b>Здесь появится черновик</b><p>Опиши задачу выше — покажем, как будет выглядеть результат.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="how-section shell" id="how">
+      <div class="section-heading reveal"><div><p class="eyebrow">03 / Процесс</p><h2>От мысли<br>до <em>публикации.</em></h2></div></div>
+      <div class="steps">
+        <article class="step reveal"><span>01</span><h3>Расскажи контекст</h3><p>Тема, площадка, аудитория, тон и задача. Один раз сохрани — потом сервис помнит.</p></article>
+        <article class="step reveal"><span>02</span><h3>Собери черновик</h3><p>Выбери рабочий сценарий. Получи структуру, а не пустой текстовый лист.</p></article>
+        <article class="step reveal"><span>03</span><h3>Доведи до своего</h3><p>Сократи, усили тон, добавь личное. AI помогает, решение остаётся за тобой.</p></article>
+      </div>
+    </section>
+
+    <section class="pricing-section" id="pricing"><div class="shell"><div class="section-heading pricing-heading reveal"><div><p class="eyebrow">04 / Тарифы</p><h2>Прозрачные<br><em>лимиты.</em></h2></div><p>Платежи пока не подключены. Ниже — структура будущих пакетов, а не предложение к оплате.</p></div>
+      <div class="pricing-grid">
+        <article class="price-card reveal"><p class="price-name">Старт</p><h3>Для личного канала</h3><div class="price"><b>30</b><span>действий<br>на 30 дней</span></div><ul><li>Пост-студия</li><li>Редактор тона</li><li>История 7 дней</li></ul><button class="outline-button select-plan" data-plan="Старт" type="button">Выбрать пакет</button></article>
+        <article class="price-card featured-price reveal"><span class="popular">Выбор авторов</span><p class="price-name">Про</p><h3>Для стабильного контента</h3><div class="price"><b>150</b><span>действий<br>на 30 дней</span></div><ul><li>Все инструменты</li><li>Контент-планы</li><li>Память бренда</li><li>История 30 дней</li></ul><button class="button select-plan" data-plan="Про" type="button">Выбрать пакет <span>→</span></button></article>
+        <article class="price-card reveal"><p class="price-name">Команда</p><h3>Для нескольких проектов</h3><div class="price"><b>500</b><span>действий<br>на 30 дней</span></div><ul><li>Рабочие пространства</li><li>Роли команды</li><li>Экспорт материалов</li><li>Приоритетная поддержка</li></ul><button class="outline-button select-plan" data-plan="Команда" type="button">Выбрать пакет</button></article>
+      </div></div>
+    </section>
+
+    <section class="safety-section shell" id="safety"><div class="safety-card reveal"><div><p class="eyebrow">Создаём спокойно</p><h2>Ваш контент —<br><em>ваша ответственность.</em></h2></div><div class="safety-list"><p><span>01</span> Не загружайте персональные, платёжные и чужие закрытые данные.</p><p><span>02</span> Проверяйте факты и права перед публикацией.</p><p><span>03</span> AI не заменяет юриста, врача или финансового специалиста.</p></div></div></section>
+  </main>
+
+  <footer class="footer shell"><div class="footer-top"><a class="brand" href="#top"><span class="brand-mark"><i></i><i></i><i></i><i></i></span><span>nova<span>content</span></span></a><p>Рабочее пространство для контента.<br>Платежи и файлы пока не подключены.</p><a href="#top" class="back-top">Наверх ↑</a></div><div class="footer-bottom"><span>© Nova Content AI</span><span>AI-результаты проверяет человек</span><span><a href="/docs/privacy">Политика</a> · <a href="/docs/terms">Условия</a> · <a href="mailto:support@example.com">Поддержка</a></span></div></footer>
+
+  <aside class="dashboard" aria-hidden="true">
+    <div class="dash-head"><div><p class="eyebrow">Личный кабинет</p><h2>Привет, Алексей</h2></div><button class="close-dashboard" type="button" aria-label="Закрыть">×</button></div>
+    <div class="dash-credit"><span>Лимит действий</span><b>12 <small>из 30</small></b><div><i></i></div><p>Демо-пакет «Старт» · действует 27 дней</p></div>
+    <div class="dash-nav"><button class="dash-tab active" data-panel="projects">Проекты</button><button class="dash-tab" data-panel="workspace">Работа</button><button class="dash-tab" data-panel="library">Библиотека</button><button class="dash-tab" data-panel="admin">Админка</button></div>
+    <div class="dash-panel active" id="projects"><div class="project-list"></div><button class="outline-button new-project" type="button">+ Создать проект</button><form class="project-form"><label>Название проекта<input name="name" maxlength="80" placeholder="Например, Кофейня «Маяк»" required></label><label>О чём этот проект<textarea name="description" maxlength="280" placeholder="Продукт, задача или направление"></textarea></label><label>Память бренда<textarea name="brand_context" maxlength="3000" placeholder="Аудитория, факты, продукты, запреты, примеры"></textarea></label><label>Тон бренда<input name="tone" maxlength="80" placeholder="Например, спокойный и дружелюбный"></label><button class="button" type="submit">Создать проект <span>→</span></button></form></div>
+    <div class="dash-panel" id="workspace"><div class="workspace-project"></div><div class="chat-box"><label for="chat-message">AI-ассистент проекта</label><textarea id="chat-message" maxlength="1200" placeholder="Спросите о структуре, идее или тоне материала"></textarea><div class="chat-controls"><select id="chat-model-tier"><option value="swift">Быстрый · 1 Action</option><option value="studio">Студийный · 3 Actions</option><option value="deep">Глубокий · 6 Actions</option></select><button class="button chat-send" type="button">Спросить <span>↑</span></button></div><div class="chat-result"></div></div></div>
+    <div class="dash-panel" id="library"><div class="library-item"><span>▤</span><div><b>Осенний контент-план</b><small>Черновик · 5 минут назад</small></div><em>···</em></div><div class="library-item"><span>✦</span><div><b>Пост-знакомство</b><small>Готово · вчера</small></div><em>···</em></div></div>
+    <div class="dash-panel" id="admin"><div class="admin-warning">Демо-админка: здесь нет настоящих пользователей, оплат или API-ключей.</div><div class="admin-stat"><span>Материалы за сегодня</span><b>24</b></div><div class="admin-stat"><span>Активные демо-пользователи</span><b>8</b></div><div class="admin-stat"><span>Расход AI-лимита</span><b>—</b></div><button class="outline-button" type="button">Настроить услуги</button></div>
+  </aside>
+  <section class="auth-modal" aria-hidden="true" aria-labelledby="auth-title">
+    <div class="auth-card"><button class="close-auth" type="button" aria-label="Закрыть">×</button><p class="eyebrow">NOVA CONTENT AI</p><h2 id="auth-title">Войти в пространство</h2><p class="auth-copy">Создавайте материалы в сервисе. Ключи AI‑провайдера остаются на сервере.</p>
+      <form id="auth-form"><label class="auth-name">Имя<input name="name" minlength="2" maxlength="80" autocomplete="name"></label><label>Email<input name="email" type="email" required autocomplete="email"></label><label>Пароль<input name="password" type="password" required minlength="10" autocomplete="current-password"></label><label class="terms auth-name"><input name="terms" type="checkbox"> Принимаю <a href="/docs/terms" target="_blank">условия сервиса</a> и политику</label><button class="button" type="submit">Продолжить <span>→</span></button></form>
+      <button class="auth-switch" type="button">Нет аккаунта? Зарегистрироваться</button><p class="auth-error" role="alert"></p>
+    </div>
+  </section>
+  <div class="overlay" aria-hidden="true"></div><div class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

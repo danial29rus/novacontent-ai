@@ -1,0 +1,23 @@
+{
+	email {$ACME_EMAIL}
+}
+
+# Production: SITE_ADDRESS="24nova-ai.ru, www.24nova-ai.ru" → automatic HTTPS (Let's Encrypt).
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	@www host www.24nova-ai.ru
+	redir @www https://24nova-ai.ru{uri} permanent
+
+	# SSE chat streams are flushed immediately by reverse_proxy.
+	reverse_proxy web:80
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+	}
+}

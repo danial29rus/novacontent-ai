@@ -1,0 +1,20 @@
+# secrets & data — never in git
+.env
+.env.*
+!.env.example
+backups/*
+!backups/.gitkeep
+legacy/nova.db
+
+# build & caches
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+.idea/
+.vscode/

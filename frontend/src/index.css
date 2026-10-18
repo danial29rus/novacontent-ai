@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html,
+  body {
+    @apply bg-ink-950 text-zinc-100 antialiased;
+    font-family: Manrope, system-ui, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+  ::selection {
+    background: rgba(139, 92, 246, 0.45);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #2c2c4a transparent;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-nova-400/70 ring-offset-2 ring-offset-ink-950;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/[0.07] bg-white/[0.03] backdrop-blur-xl shadow-card;
+  }
+  .text-gradient {
+    @apply bg-gradient-to-r from-nova-300 via-fuchsia-300 to-aqua-300 bg-clip-text text-transparent;
+  }
+  .field {
+    @apply w-full rounded-xl border border-white/10 bg-ink-900/80 px-3.5 py-2.5 text-sm text-zinc-100
+      placeholder:text-zinc-500 transition focus:border-nova-400/60 focus:bg-ink-900 focus:outline-none
+      focus:ring-4 focus:ring-nova-500/15;
+  }
+  .label {
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-zinc-400;
+  }
+  .skeleton {
+    @apply rounded-lg bg-gradient-to-r from-white/[0.03] via-white/[0.08] to-white/[0.03] bg-[length:200%_100%] animate-shimmer;
+  }
+}
+
+/* Markdown inside chat bubbles and generations */
+.prose-nova {
+  @apply text-[15px] leading-7 text-zinc-200;
+}
+.prose-nova > * + * {
+  @apply mt-3;
+}
+.prose-nova h1,
+.prose-nova h2,
+.prose-nova h3 {
+  @apply mt-5 font-bold text-white;
+}
+.prose-nova h1 { @apply text-xl; }
+.prose-nova h2 { @apply text-lg; }
+.prose-nova h3 { @apply text-base; }
+.prose-nova ul { @apply list-disc pl-5 marker:text-nova-400; }
+.prose-nova ol { @apply list-decimal pl-5 marker:text-nova-400; }
+.prose-nova li + li { @apply mt-1; }
+.prose-nova a { @apply text-nova-300 underline decoration-nova-400/40 underline-offset-4 hover:decoration-nova-300; }
+.prose-nova strong { @apply font-semibold text-white; }
+.prose-nova blockquote { @apply border-l-2 border-nova-400/60 pl-4 italic text-zinc-400; }
+.prose-nova :not(pre) > code {
+  @apply rounded-md bg-white/10 px-1.5 py-0.5 font-mono text-[13px] text-fuchsia-200;
+}
+.prose-nova pre {
+  @apply overflow-x-auto rounded-xl border border-white/10 bg-ink-950/90 p-4 font-mono text-[13px] leading-6;
+}
+.prose-nova table { @apply block w-full overflow-x-auto border-collapse text-sm; }
+.prose-nova th { @apply border-b border-white/15 px-3 py-2 text-left font-semibold text-white; }
+.prose-nova td { @apply border-b border-white/5 px-3 py-2 align-top; }
+.prose-nova hr { @apply border-white/10; }
+
+/* highlight.js — compact palette tuned to the brand */
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in { color: #c4b5fd; }
+.hljs-string, .hljs-attr { color: #86efac; }
+.hljs-number, .hljs-literal { color: #fdba74; }
+.hljs-comment { color: #6b7280; font-style: italic; }
+.hljs-title, .hljs-function { color: #67e8f9; }
+.hljs-type, .hljs-class { color: #f9a8d4; }
+
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: -0.2em;
+  border-radius: 2px;
+  background: linear-gradient(#a78bfa, #22d3ee);
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink { to { visibility: hidden; } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* Top-up slider thumb */
+.nova-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 22px;
+  width: 22px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 4px solid #a78bfa;
+  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.2), 0 4px 14px rgba(139, 92, 246, 0.6);
+  transition: transform 0.15s;
+}
+.nova-range:active::-webkit-slider-thumb { transform: scale(1.15); }
+.nova-range::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 4px solid #a78bfa;
+  box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.2);
+}
