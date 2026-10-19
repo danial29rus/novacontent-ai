@@ -1,10 +1,11 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bot,
   Briefcase,
   Gift,
+  LifeBuoy,
   BookOpen,
   FolderKanban,
   LayoutDashboard,
@@ -23,7 +24,8 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { Aurora, Logo } from "@/components/Brand";
 import { Spinner } from "@/components/ui";
 import { useChats, useMe } from "@/hooks/data";
-import { post } from "@/lib/api";
+import { get, post } from "@/lib/api";
+import { useUnreadTickets } from "@/pages/app/Support";
 import { sparks } from "@/lib/format";
 
 const NAV = [
@@ -37,6 +39,7 @@ const NAV = [
   { to: "/app/library", label: "Библиотека", icon: LibraryIcon },
   { to: "/app/billing", label: "Баланс", icon: Wallet },
   { to: "/app/referral", label: "Пригласить друга", icon: Gift },
+  { to: "/app/support", label: "Поддержка", icon: LifeBuoy },
 ];
 
 const MOBILE_TABS = [NAV[0], NAV[1], NAV[2], NAV[3], NAV[8]];
@@ -63,11 +66,25 @@ function BalanceCard({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
+/** Unread support replies for the user; tickets waiting for an answer for admins. */
+function useNavBadges(): Record<string, number> {
+  const { data: user } = useMe();
+  const { data: mine } = useUnreadTickets();
+  const { data: staff } = useQuery({
+    queryKey: ["admin", "ticket-counts"],
+    queryFn: () => get<{ unread: number; open: number }>("/admin/tickets/counts"),
+    enabled: user?.role === "admin",
+    refetchInterval: 30_000,
+  });
+  return { "/app/support": mine?.count ?? 0, "/app/admin": staff?.unread ?? 0 };
+}
+
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { data: user } = useMe();
   const { data: chats } = useChats();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const badges = useNavBadges();
 
   const logout = async () => {
     await post("/auth/logout");
@@ -117,6 +134,11 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                   )}
                   <Icon className={clsx("relative h-4 w-4", isActive && "text-nova-300")} />
                   <span className="relative">{label}</span>
+                  {!!badges[to] && (
+                    <span className="relative ml-auto min-w-[1.25rem] rounded-full bg-fuchsia-500 px-1.5 text-center text-[10px] font-bold leading-5 text-white">
+                      {badges[to]}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>

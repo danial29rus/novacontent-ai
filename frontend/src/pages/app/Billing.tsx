@@ -3,6 +3,7 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import { ArrowDownLeft, ArrowUpRight, Check, Gift, Shield, Sparkles, Ticket, Users, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { ProviderDot } from "@/components/Brand";
 import { EstimatesPicker, useEstimates } from "@/components/Estimates";
@@ -252,8 +253,8 @@ export default function Billing() {
     <div>
       {config && !config.payments_enabled && (
         <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] p-4 text-sm text-amber-200">
-          Приём оплаты подключается. Чтобы пополнить баланс прямо сейчас, напишите на{" "}
-          <a href={`mailto:${config.support_email}`} className="font-semibold underline">{config.support_email}</a>.
+          Приём оплаты подключается. Чтобы пополнить баланс прямо сейчас, напишите нам в{" "}
+          <Link to="/app/support" className="font-semibold underline">«Поддержку»</Link>.
         </div>
       )}
       <PageHeader title="Баланс" subtitle="Искры ✦ — валюта Nova. 1 ✦ ≈ 1 ₽, не сгорают, чем больше пакет — тем больше бонус." />

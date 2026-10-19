@@ -18,6 +18,7 @@ const Studio = lazy(() => import("@/pages/app/Studio"));
 const Library = lazy(() => import("@/pages/app/Library"));
 const Billing = lazy(() => import("@/pages/app/Billing"));
 const Referral = lazy(() => import("@/pages/app/Referral"));
+const Support = lazy(() => import("@/pages/app/Support"));
 const Profile = lazy(() => import("@/pages/app/Profile"));
 const Admin = lazy(() => import("@/pages/admin/Admin"));
 
@@ -69,6 +70,8 @@ export default function App() {
           <Route path="library" element={<Library />} />
           <Route path="billing" element={<Billing />} />
           <Route path="referral" element={<Referral />} />
+          <Route path="support" element={<Support />} />
+          <Route path="support/:ticketId" element={<Support />} />
           <Route path="profile" element={<Profile />} />
           <Route path="admin" element={<RequireAuth admin><Admin /></RequireAuth>} />
         </Route>

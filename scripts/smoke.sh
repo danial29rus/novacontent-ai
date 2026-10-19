@@ -30,6 +30,10 @@ check "профиль"                 "$(code -b "$JAR" "$API/me")" 200
 check "админка обычному → 403"  "$(code -b "$JAR" "$API/admin/overview")" 403
 check "реферальная ссылка"      "$(code -b "$JAR" "$API/referral")" 200
 check "создание чата"           "$(code -b "$JAR" -H "$JSON" -d '{}' "$API/chats")" 201
+TICKET='{"subject":"Smoke test","message":"Проверка тикетов"}'
+check "создание обращения"       "$(code -b "$JAR" -H "$JSON" -d "$TICKET" "$API/tickets")" 201
+check "список обращений"         "$(code -b "$JAR" "$API/tickets")" 200
+check "обращения админа → 403"   "$(code -b "$JAR" "$API/admin/tickets")" 403
 check "восстановление пароля"   "$(code -H "$JSON" -d "$FORGOT" "$API/auth/forgot")" 202
 check "выход"                   "$(code -b "$JAR" -X POST "$API/auth/logout")" 204
 case "$BASE" in https://*:*) ;; https://*)  # only meaningful on the standard ports 80/443

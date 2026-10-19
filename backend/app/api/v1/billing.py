@@ -69,7 +69,7 @@ async def usage(user: CurrentUser, db: DB, days: int = 14) -> list[dict]:
 async def topup(body: TopupIn, user: CurrentUser, db: DB) -> dict:
     if not billing.payments_enabled():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE,
-                            f"Оплата временно недоступна. Напишите нам: {settings.support_email}")
+                            "Оплата временно недоступна. Напишите нам в разделе «Поддержка».")
     package = None
     if body.package_slug:
         package = await db.scalar(

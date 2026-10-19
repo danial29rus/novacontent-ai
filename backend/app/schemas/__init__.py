@@ -49,10 +49,6 @@ class ResetIn(BaseModel):
     password: str = Field(min_length=10, max_length=128)
 
 
-class TicketReplyIn(BaseModel):
-    message: str = Field(min_length=2, max_length=5000)
-
-
 class ProfileIn(BaseModel):
     name: str = Field(min_length=2, max_length=80)
 
@@ -294,10 +290,6 @@ class GenerationOut(ORM):
     cost: int
     created_at: datetime
 
-
-class SupportIn(BaseModel):
-    subject: str = Field(min_length=3, max_length=120)
-    message: str = Field(min_length=5, max_length=3000)
 
 
 # --- Admin ---------------------------------------------------------------------------------------

@@ -1,13 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { DatabaseBackup, Mail, Megaphone, Ticket, Activity, Coins, CreditCard, LifeBuoy, MessageSquare, Search, TrendingUp, Users } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, DatabaseBackup, Mail, Megaphone, Ticket, Activity, Coins, CreditCard, LifeBuoy, MessageSquare, Search, TrendingUp, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ProviderDot } from "@/components/Brand";
 import { Badge, Button, Card, Field, PageHeader } from "@/components/ui";
 import { get, patch, post } from "@/lib/api";
+import { TicketRow, TicketThread, type Ticket as SupportTicket, type TicketMessage } from "@/components/Ticket";
+import { Spinner } from "@/components/ui";
 import { PromoTab, TrafficTab } from "./Growth";
 import { UserDetail } from "./UserDetail";
 import { bytes, date, number, rub, tokens } from "@/lib/format";
@@ -90,6 +92,7 @@ function OverviewTab() {
   return (
     <div className="space-y-6">
       <BackupCard />
+      <MailPanel />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Пользователи" value={`${number(data.users)} (+${data.new_users})`} icon={Users} />
         <Stat label="Активные · 30 дн" value={number(data.active_users)} icon={TrendingUp} />
@@ -383,7 +386,7 @@ function MailPanel() {
             {!data.enabled ? "Почта не настроена — письма не отправляются" : data.last.ok === false ? "Последнее письмо не ушло" : "Почта подключена"}
           </p>
           <p className="text-zinc-400">
-            Обращения приходят на {data.support_email}
+            Нужна для писем восстановления пароля
             {data.enabled && ` · SMTP ${data.host}:${data.port} (${data.user})`}
             {data.last.at && ` · последняя отправка ${date(data.last.at)}`}
           </p>
@@ -395,60 +398,97 @@ function MailPanel() {
   );
 }
 
+const TICKET_FILTERS = [
+  ["active", "Активные"], ["open", "Ждут ответа"], ["answered", "Отвечено"], ["closed", "Закрытые"], ["all", "Все"],
+] as const;
+
 function TicketsTab() {
   const qc = useQueryClient();
-  const { data = [] } = useQuery({ queryKey: ["admin", "tickets"], queryFn: () => get<any[]>("/admin/tickets") });
+  const [filter, setFilter] = useState<(typeof TICKET_FILTERS)[number][0]>("active");
+  const [q, setQ] = useState("");
+  const [selected, setSelected] = useState<number | null>(null);
+  const [userCard, setUserCard] = useState<number | null>(null);
+  const { data: counts } = useQuery({ queryKey: ["admin", "ticket-counts"], queryFn: () => get<{ open: number; answered: number; closed: number; unread: number }>("/admin/tickets/counts"), refetchInterval: 30_000 });
+  const { data: tickets = [] } = useQuery({
+    queryKey: ["admin", "tickets", filter, q],
+    queryFn: () => get<SupportTicket[]>(`/admin/tickets?status_filter=${filter}&q=${encodeURIComponent(q)}`),
+    refetchInterval: 30_000,
+  });
+  const { data: detail } = useQuery({
+    queryKey: ["admin", "ticket", selected],
+    queryFn: () => get<{ ticket: SupportTicket; messages: TicketMessage[] }>(`/admin/tickets/${selected}`),
+    enabled: selected !== null,
+    refetchInterval: 15_000,
+  });
+  useEffect(() => {
+    if (detail) qc.invalidateQueries({ queryKey: ["admin", "ticket-counts"] });
+  }, [detail?.ticket.id, qc]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const refresh = async () => {
+    await qc.invalidateQueries({ queryKey: ["admin", "ticket", selected] });
+    qc.invalidateQueries({ queryKey: ["admin", "tickets"] });
+    qc.invalidateQueries({ queryKey: ["admin", "ticket-counts"] });
+  };
+  const countFor = (f: string) =>
+    !counts ? null : f === "active" ? counts.open + counts.answered : f === "all" ? counts.open + counts.answered + counts.closed : counts[f as "open"];
+
   return (
-    <div className="space-y-3">
-      <MailPanel />
-      {data.map((t) => (
-        <Card key={t.id} className="p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="font-bold">{t.subject}</p>
-            <div className="flex items-center gap-2">
-              <Badge tone={t.status === "open" ? "amber" : "zinc"}>{t.status === "open" ? "открыт" : "закрыт"}</Badge>
-              {t.status === "open" && (
-                <Button size="sm" variant="secondary" onClick={async () => { await post(`/admin/tickets/${t.id}/close`); qc.invalidateQueries({ queryKey: ["admin", "tickets"] }); }}>
-                  Закрыть
-                </Button>
-              )}
-            </div>
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[340px_1fr]">
+      <div className={clsx("space-y-3", selected !== null && "hidden lg:block")}>
+        <div className="-mx-1 flex gap-1 overflow-x-auto px-1">
+          {TICKET_FILTERS.map(([f, label]) => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={clsx("shrink-0 rounded-full px-3 py-1 text-xs font-semibold ring-1 transition", filter === f ? "bg-nova-500/20 text-white ring-nova-400/40" : "text-zinc-400 ring-white/10 hover:text-white")}>
+              {label}{countFor(f) !== null && ` · ${countFor(f)}`}
+            </button>
+          ))}
+        </div>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Тема или email" className="field pl-9" />
+        </div>
+        <div className="space-y-2">
+          {tickets.map((t) => <TicketRow key={t.id} t={t} staff active={t.id === selected} onClick={() => setSelected(t.id)} />)}
+          {!tickets.length && <p className="py-10 text-center text-sm text-zinc-500">Обращений нет</p>}
+        </div>
+      </div>
+
+      {selected !== null ? (
+        <Card className="flex h-[calc(100dvh-16rem)] min-h-[440px] flex-col p-4 sm:p-6">
+          <div className="mb-3 flex items-center justify-between">
+            <button onClick={() => setSelected(null)} className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-white lg:hidden">
+              <ArrowLeft className="h-4 w-4" /> Все обращения
+            </button>
+            {detail?.ticket.user_id && (
+              <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setUserCard(detail.ticket.user_id!)}>Карточка пользователя</Button>
+            )}
           </div>
-          <p className="mt-1 text-xs text-zinc-500">{t.email} · {date(t.created_at)}</p>
-          <p className="mt-3 whitespace-pre-line text-sm text-zinc-300">{t.message}</p>
-          {t.reply ? (
-            <div className="mt-4 rounded-xl border border-nova-400/20 bg-nova-500/[0.06] p-3">
-              <p className="text-xs text-nova-300">Ответ · {date(t.replied_at)}</p>
-              <p className="mt-1 whitespace-pre-line text-sm text-zinc-300">{t.reply}</p>
-            </div>
-          ) : (
-            <form
-              className="mt-4 flex flex-col gap-2 sm:flex-row"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                const message = String(new FormData(e.currentTarget).get("message") ?? "");
-                try {
-                  const res = await post<{ emailed: boolean }>(`/admin/tickets/${t.id}/reply`, { message });
-                  toast[res.emailed ? "success" : "warning"](res.emailed ? `Ответ сохранён и отправляется на ${t.email}` : "Ответ сохранён, но почта не настроена — письмо не ушло");
-                  qc.invalidateQueries({ queryKey: ["admin", "tickets"] });
-                } catch (err) {
-                  toast.error((err as Error).message);
-                }
-              }}
-            >
-              <textarea name="message" required minLength={2} rows={2} placeholder="Ответ уйдёт пользователю на почту…" className="field flex-1 resize-y" />
-              <Button type="submit" className="sm:self-end">Ответить</Button>
-            </form>
-          )}
+          {detail ? (
+            <TicketThread
+              staff
+              ticket={detail.ticket}
+              messages={detail.messages}
+              onSend={async (body) => { await post(`/admin/tickets/${selected}/messages`, { body }); await refresh(); }}
+              onClose={async () => { await post(`/admin/tickets/${selected}/close`); await refresh(); toast.success("Обращение закрыто"); }}
+              onReopen={async () => { await post(`/admin/tickets/${selected}/reopen`); await refresh(); }}
+            />
+          ) : <div className="grid flex-1 place-items-center"><Spinner /></div>}
         </Card>
-      ))}
-      {!data.length && <p className="py-10 text-center text-sm text-zinc-500">Обращений нет</p>}
+      ) : (
+        <Card className="hidden place-items-center p-10 text-center text-sm text-zinc-500 lg:grid">Выберите обращение слева</Card>
+      )}
+      <AnimatePresence>{userCard !== null && <UserDetail userId={userCard} onClose={() => setUserCard(null)} />}</AnimatePresence>
     </div>
   );
 }
 
 export default function Admin() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
+  const { data: ticketCounts } = useQuery({
+    queryKey: ["admin", "ticket-counts"],
+    queryFn: () => get<{ unread: number }>("/admin/tickets/counts"),
+    refetchInterval: 30_000,
+  });
   return (
     <div>
       <PageHeader title="Админка" subtitle="Пользователи, баланс, модели и цены, платежи и поддержка." />
@@ -457,6 +497,9 @@ export default function Admin() {
           <button key={id} onClick={() => setTab(id)} className={clsx("relative flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition", tab === id ? "text-white" : "text-zinc-400 hover:text-white")}>
             {tab === id && <motion.span layoutId="admin-tab" className="absolute inset-0 rounded-xl border border-white/10 bg-white/[0.07]" />}
             <Icon className="relative h-4 w-4" /> <span className="relative">{label}</span>
+            {id === "tickets" && !!ticketCounts?.unread && (
+              <span className="relative rounded-full bg-fuchsia-500 px-1.5 text-[10px] font-bold leading-5 text-white">{ticketCounts.unread}</span>
+            )}
           </button>
         ))}
       </div>

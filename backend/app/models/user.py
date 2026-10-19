@@ -37,18 +37,6 @@ class Session(TimestampMixin, Base):
     user_agent: Mapped[str | None] = mapped_column(String(300))
 
 
-class SupportTicket(TimestampMixin, Base):
-    __tablename__ = "support_tickets"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    subject: Mapped[str] = mapped_column(String(120))
-    message: Mapped[str] = mapped_column(String(3000))
-    status: Mapped[str] = mapped_column(String(16), default="open")
-    reply: Mapped[str | None] = mapped_column(String(5000))
-    replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-
-
 class PasswordReset(TimestampMixin, Base):
     __tablename__ = "password_resets"
 

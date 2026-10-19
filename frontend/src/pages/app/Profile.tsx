@@ -1,9 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button, Card, Field, PageHeader } from "@/components/ui";
 import { useMe } from "@/hooks/data";
-import { usePublicConfig } from "@/pages/Legal";
 import { patch, post } from "@/lib/api";
 import { date } from "@/lib/format";
 import type { User } from "@/lib/types";
@@ -27,12 +27,10 @@ function useAction() {
 }
 
 export default function Profile() {
-  const supportEmail = usePublicConfig().data?.support_email ?? "support@24nova-ai.ru";
   const { data: user } = useMe();
   const qc = useQueryClient();
   const profile = useAction();
   const password = useAction();
-  const support = useAction();
 
   const saveProfile = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,12 +42,6 @@ export default function Profile() {
     const form = e.currentTarget;
     const f = new FormData(form);
     if (await password.run(() => post("/me/password", { current: f.get("current"), new: f.get("new") }), "Пароль изменён, другие устройства разлогинены")) form.reset();
-  };
-  const sendSupport = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const f = new FormData(form);
-    if (await support.run(() => post("/support", { subject: f.get("subject"), message: f.get("message") }), "Сообщение отправлено")) form.reset();
   };
 
   return (
@@ -72,14 +64,12 @@ export default function Profile() {
             <Button type="submit" loading={password.loading}>Изменить пароль</Button>
           </form>
         </Card>
-        <Card className="p-5 sm:p-6 lg:col-span-2">
-          <h2 className="font-bold">Поддержка</h2>
-          <p className="mb-4 mt-1 text-sm text-zinc-400">Ответим на ваш email в течение рабочего дня. Или напишите напрямую: <a href={`mailto:${supportEmail}`} className="text-nova-300">{supportEmail}</a></p>
-          <form onSubmit={sendSupport} className="grid gap-4 sm:grid-cols-[1fr_2fr]">
-            <Field label="Тема"><input name="subject" required minLength={3} className="field" placeholder="Вопрос по оплате" /></Field>
-            <Field label="Сообщение"><textarea name="message" required minLength={5} rows={3} className="field resize-y" /></Field>
-            <div className="sm:col-span-2"><Button type="submit" loading={support.loading}>Отправить</Button></div>
-          </form>
+        <Card className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-6 lg:col-span-2">
+          <div className="flex-1">
+            <h2 className="font-bold">Поддержка</h2>
+            <p className="mt-1 text-sm text-zinc-400">Вопросы и проблемы — в разделе «Поддержка»: там переписка с нами и статус каждого обращения.</p>
+          </div>
+          <Link to="/app/support"><Button>Открыть поддержку</Button></Link>
         </Card>
       </div>
     </div>

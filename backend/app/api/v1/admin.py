@@ -15,7 +15,6 @@ from app.schemas import (
     AIModelAdmin,
     AIModelUpdate,
     LedgerOut,
-    TicketReplyIn,
 )
 from app.services import billing, mailer
 
@@ -170,40 +169,6 @@ async def update_model(model_id: int, body: AIModelUpdate, actor: AdminUser, db:
     await db.commit()
     await db.refresh(model)
     return model
-
-
-@router.get("/tickets")
-async def tickets(_: AdminUser, db: DB) -> list[dict]:
-    rows = (await db.execute(
-        select(SupportTicket, User.email).join(User, User.id == SupportTicket.user_id)
-        .order_by(SupportTicket.id.desc()).limit(100)
-    )).all()
-    return [{"id": t.id, "email": email, "subject": t.subject, "message": t.message, "status": t.status,
-             "reply": t.reply, "replied_at": t.replied_at, "created_at": t.created_at} for t, email in rows]
-
-
-@router.post("/tickets/{ticket_id}/reply")
-async def reply_ticket(ticket_id: int, body: TicketReplyIn, actor: AdminUser, db: DB) -> dict:
-    ticket = await db.get(SupportTicket, ticket_id)
-    if ticket is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "Обращение не найдено.")
-    user = await db.get(User, ticket.user_id)
-    ticket.reply, ticket.replied_at, ticket.status = body.message, datetime.now(UTC), "closed"
-    db.add(AuditEvent(actor_id=actor.id, action="ticket_reply", details={"ticket_id": ticket_id, "user_id": user.id}))
-    await db.commit()
-    mailer.send_later(
-        user.email, f"Re: {ticket.subject} [Nova #{ticket.id}]", "Ответ поддержки Nova AI",
-        mailer.paragraph(body.message) + f'<p style="color:#71717a;border-left:2px solid #2c2c4a;padding-left:12px">'
-        f'Ваше обращение: {mailer.html.escape(ticket.message[:1000])}</p>',
-        text=f"{body.message}\n\n> {ticket.message[:1000]}", reply_to=settings.support_email,
-    )
-    return {"ok": True, "emailed": settings.mail_enabled}
-
-
-@router.post("/tickets/{ticket_id}/close", status_code=204)
-async def close_ticket(ticket_id: int, _: AdminUser, db: DB) -> None:
-    await db.execute(update(SupportTicket).where(SupportTicket.id == ticket_id).values(status="closed"))
-    await db.commit()
 
 
 @router.get("/payments")

@@ -17,6 +17,7 @@ from app.api.v1 import (
     knowledge,
     projects,
     services,
+    support,
 )
 from app.core.config import settings
 from app.db.session import SessionLocal
@@ -48,7 +49,9 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_cr
                    allow_methods=["*"], allow_headers=["*"])
 
 api = APIRouter(prefix="/api/v1")
-for module in (auth, billing, chats, agents, knowledge, projects, services, growth, admin, admin_users, admin_growth):
+ROUTERS = (auth, billing, chats, agents, knowledge, projects, services, growth, support,
+           admin, admin_users, admin_growth)
+for module in ROUTERS:
     api.include_router(module.router)
 app.include_router(api)
 

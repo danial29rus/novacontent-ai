@@ -4,7 +4,8 @@ from app.models.chat import Agent, Chat, Message
 from app.models.knowledge import Chunk, Document, KnowledgeBase
 from app.models.marketing import PromoCode, PromoRedemption, ReferralReward
 from app.models.project import ContentPack, Generation, Project, ProjectPack
-from app.models.user import AuditEvent, PasswordReset, Session, SupportTicket, User
+from app.models.support import SupportTicket, TicketMessage
+from app.models.user import AuditEvent, PasswordReset, Session, User
 
 __all__ = [
     "AIModel",
@@ -28,6 +29,7 @@ __all__ = [
     "ProjectPack",
     "Session",
     "SupportTicket",
+    "TicketMessage",
     "TopupPackage",
     "UsageEvent",
     "User",

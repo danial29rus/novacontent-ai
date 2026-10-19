@@ -6,8 +6,8 @@ from sqlalchemy import delete, select
 from app.api.deps import COOKIE, DB, CurrentUser, RateLimited
 from app.core.config import settings
 from app.core.security import hash_password, new_token, token_hash, verify_password
-from app.models import PasswordReset, Session, SupportTicket, User
-from app.schemas import ForgotIn, LoginIn, PasswordIn, ProfileIn, RegisterIn, RegisterOut, ResetIn, SupportIn, UserOut
+from app.models import PasswordReset, Session, User
+from app.schemas import ForgotIn, LoginIn, PasswordIn, ProfileIn, RegisterIn, RegisterOut, ResetIn, UserOut
 from app.services import billing, growth, mailer
 
 router = APIRouter(tags=["auth"])
@@ -80,25 +80,6 @@ async def change_password(body: PasswordIn, user: CurrentUser, request: Request,
     current = token_hash(request.cookies.get(COOKIE, ""))
     await db.execute(delete(Session).where(Session.user_id == user.id, Session.token_hash != current))
     await db.commit()
-
-
-@router.post("/support", status_code=201, dependencies=[RateLimited])
-async def support(body: SupportIn, user: CurrentUser, db: DB) -> dict:
-    ticket = SupportTicket(user_id=user.id, subject=body.subject, message=body.message)
-    db.add(ticket)
-    await db.commit()
-    # To the support inbox; "Reply" in the mail client goes straight to the user.
-    mailer.send_later(
-        settings.support_email, f"[Nova #{ticket.id}] {body.subject}", f"Обращение #{ticket.id}",
-        mailer.paragraph(f"От: {user.name} <{user.email}>\n\n{body.message}"),
-        text=f"От: {user.name} <{user.email}>\n\n{body.message}", reply_to=user.email,
-    )
-    mailer.send_later(
-        user.email, f"Мы получили ваше обращение #{ticket.id}", "Обращение получено",
-        mailer.paragraph(f"Спасибо! Мы ответим на {user.email} в течение рабочего дня.\n\nТема: {body.subject}"),
-        text=f"Мы получили ваше обращение #{ticket.id} и ответим в течение рабочего дня.",
-    )
-    return {"ok": True, "id": ticket.id}
 
 
 @router.get("/public/config")

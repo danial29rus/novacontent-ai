@@ -151,7 +151,7 @@ async def activity(user_id: int, _: AdminUser, db: DB, limit: int = 300) -> list
                              f"{p.provider}", None, p.tokens if p.status == "succeeded" else None))
 
     for t in await db.scalars(select(SupportTicket).where(SupportTicket.user_id == user_id)):
-        events.append(_event(t.created_at, "ticket", f"Обращение: {t.subject}", t.message))
+        events.append(_event(t.created_at, "ticket", f"Обращение: {t.subject}", f"статус: {t.status}"))
 
     for e in await db.scalars(select(LedgerEntry).where(LedgerEntry.user_id == user_id,
                                                         LedgerEntry.kind.in_(("admin", "welcome", "refund")))):
