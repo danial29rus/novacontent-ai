@@ -65,3 +65,17 @@ async def test_mail_message_is_built_for_timeweb_smtp(monkeypatch):
     assert ok and message["From"].endswith("<support@24nova-ai.ru>") and message["Reply-To"] == "a@b.ru"
     html_part = message.get_body(("html",)).get_content()
     assert "Привет &lt;b&gt;" in html_part and "https://24nova-ai.ru/x" in html_part
+
+
+async def test_send_later_does_not_wait_for_smtp(monkeypatch):
+    import asyncio
+    import time
+
+    for key, value in {"smtp_host": "smtp.timeweb.ru", "smtp_user": "s@x.ru", "smtp_password": "x"}.items():
+        monkeypatch.setattr(settings, key, value)
+    monkeypatch.setattr(mailer, "_send_sync", lambda message: time.sleep(0.5))  # a slow SMTP server
+    started = time.perf_counter()
+    mailer.send_later("u@x.ru", "s", "t", "<p>x</p>", text="x")
+    assert time.perf_counter() - started < 0.05
+    await asyncio.sleep(0.6)  # let the background send finish
+    assert mailer.last_result["ok"] is True

@@ -287,7 +287,7 @@ export default function Billing() {
         <CustomTopup promo={promo} onBuy={buyCustom} loading={buying === "custom"} />
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.3fr]">
+      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.3fr]">
         <div className="space-y-6">
           <Card className="p-5 sm:p-6">
             <h2 className="font-bold">Цена сообщения в чате</h2>

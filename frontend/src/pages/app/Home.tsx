@@ -50,7 +50,7 @@ export default function Home() {
         ))}
       </motion.div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
         <Card className="min-w-0 p-5 sm:p-6">
           <div className="flex items-start justify-between gap-4">
             <div>

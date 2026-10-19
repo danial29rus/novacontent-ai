@@ -6,8 +6,9 @@ import { Link } from "react-router-dom";
 import { Markdown } from "@/components/chat/Markdown";
 import { TOOL_EMOJI } from "@/components/StudioForm";
 import { Badge, Button, Card, EmptyState, listMotion, Modal, PageHeader, Skeleton } from "@/components/ui";
-import { useServices } from "@/hooks/data";
-import { del, get } from "@/lib/api";
+import { useKnowledge, useServices } from "@/hooks/data";
+import { toast } from "sonner";
+import { del, get, post } from "@/lib/api";
 import { date, relative, TOOL_LABELS, sparks } from "@/lib/format";
 import type { Generation } from "@/lib/types";
 
@@ -16,6 +17,7 @@ export default function Library() {
   const [open, setOpen] = useState<Generation | null>(null);
   const qc = useQueryClient();
   const { data: services = [] } = useServices();
+  const { data: bases = [] } = useKnowledge();
   const label = (g: Generation) => {
     const s = services.find((x) => x.slug === g.tool);
     return s ? `${s.emoji} ${s.title}` : `${TOOL_EMOJI[g.tool] ?? "✦"} ${TOOL_LABELS[g.tool] ?? g.tool}`;
@@ -54,7 +56,28 @@ export default function Library() {
           <>
             <p className="mb-4 text-xs text-zinc-500">{date(open.created_at)} · {open.model_slug} · −{sparks(open.cost)}</p>
             <Markdown>{open.output}</Markdown>
-            <div className="mt-6 flex justify-end gap-2">
+            <div className="mt-6 flex flex-wrap justify-end gap-2">
+              {bases.length > 0 && (
+                <select
+                  defaultValue=""
+                  onChange={async (e) => {
+                    const kbId = Number(e.target.value);
+                    if (!kbId) return;
+                    try {
+                      await post(`/knowledge/${kbId}/text`, { title: label(open).replace(/^\S+\s/, "").slice(0, 100), text: open.output });
+                      toast.success(`Добавлено в базу «${bases.find((b) => b.id === kbId)?.name}»`);
+                    } catch (err) {
+                      toast.error((err as Error).message);
+                    }
+                    e.target.value = "";
+                  }}
+                  className="field w-auto"
+                  aria-label="Добавить в базу знаний"
+                >
+                  <option value="">В базу знаний…</option>
+                  {bases.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              )}
               <Button variant="secondary" onClick={() => navigator.clipboard.writeText(open.output)}>Копировать</Button>
               <Button variant="danger" onClick={() => remove(open)}><Trash2 className="h-4 w-4" /> Удалить</Button>
             </div>

@@ -59,7 +59,7 @@ function Runner({ service }: { service: Service }) {
         <ArrowLeft className="h-4 w-4" /> Все услуги
       </Link>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
         <div className="min-w-0">
           <div className="mb-6 flex items-start gap-4">
             <motion.span initial={{ scale: 0.6, rotate: -15 }} animate={{ scale: 1, rotate: 0 }} className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-nova-500/30 to-fuchsia-500/10 text-3xl ring-1 ring-white/10">

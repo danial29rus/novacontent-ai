@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { DatabaseBackup, Megaphone, Ticket, Activity, Coins, CreditCard, LifeBuoy, MessageSquare, Search, TrendingUp, Users } from "lucide-react";
+import { DatabaseBackup, Mail, Megaphone, Ticket, Activity, Coins, CreditCard, LifeBuoy, MessageSquare, Search, TrendingUp, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -96,7 +96,7 @@ function OverviewTab() {
         <Stat label="Сообщения · 30 дн" value={number(data.messages)} icon={MessageSquare} />
         <Stat label="Выручка · 30 дн" value={rub(data.revenue_kopeks)} icon={CreditCard} />
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1.6fr_1fr]">
         <Card className="p-5">
           <h3 className="font-bold">Списано ✦ по дням</h3>
           <div className="mt-4 h-64">
@@ -353,11 +353,54 @@ function PaymentsTab() {
   );
 }
 
+type MailStatus = { enabled: boolean; host: string | null; port: number; user: string | null; support_email: string;
+  last: { ok: boolean | null; at: string | null; error: string | null; to: string | null } };
+
+function MailPanel() {
+  const { data, refetch } = useQuery({ queryKey: ["admin", "mail"], queryFn: () => get<MailStatus>("/admin/mail") });
+  const [testing, setTesting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!data) return null;
+  const test = async () => {
+    setTesting(true);
+    setError(null);
+    try {
+      const r = await post<{ ok: boolean; to?: string; error?: string }>("/admin/mail/test");
+      if (r.ok) toast.success(`Тестовое письмо отправлено на ${r.to} — проверьте ящик`);
+      else setError(r.error ?? "Не удалось отправить");
+      refetch();
+    } finally {
+      setTesting(false);
+    }
+  };
+  const ok = data.enabled && data.last.ok !== false;
+  return (
+    <Card className={clsx("p-4 sm:p-5", !ok && "border-amber-400/30 bg-amber-400/[0.05]")}>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <Mail className={clsx("h-5 w-5 shrink-0", ok ? "text-emerald-300" : "text-amber-300")} />
+        <div className="min-w-0 flex-1 text-sm">
+          <p className="font-semibold">
+            {!data.enabled ? "Почта не настроена — письма не отправляются" : data.last.ok === false ? "Последнее письмо не ушло" : "Почта подключена"}
+          </p>
+          <p className="text-zinc-400">
+            Обращения приходят на {data.support_email}
+            {data.enabled && ` · SMTP ${data.host}:${data.port} (${data.user})`}
+            {data.last.at && ` · последняя отправка ${date(data.last.at)}`}
+          </p>
+        </div>
+        <Button size="sm" variant="secondary" loading={testing} onClick={test}>Проверить почту</Button>
+      </div>
+      {(error || data.last.error) && <p className="mt-3 rounded-xl bg-rose-500/10 p-3 text-xs text-rose-200">{error || data.last.error}</p>}
+    </Card>
+  );
+}
+
 function TicketsTab() {
   const qc = useQueryClient();
   const { data = [] } = useQuery({ queryKey: ["admin", "tickets"], queryFn: () => get<any[]>("/admin/tickets") });
   return (
     <div className="space-y-3">
+      <MailPanel />
       {data.map((t) => (
         <Card key={t.id} className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -386,7 +429,7 @@ function TicketsTab() {
                 const message = String(new FormData(e.currentTarget).get("message") ?? "");
                 try {
                   const res = await post<{ emailed: boolean }>(`/admin/tickets/${t.id}/reply`, { message });
-                  toast[res.emailed ? "success" : "warning"](res.emailed ? `Ответ отправлен на ${t.email}` : "Ответ сохранён, но письмо не ушло — проверьте SMTP");
+                  toast[res.emailed ? "success" : "warning"](res.emailed ? `Ответ сохранён и отправляется на ${t.email}` : "Ответ сохранён, но почта не настроена — письмо не ушло");
                   qc.invalidateQueries({ queryKey: ["admin", "tickets"] });
                 } catch (err) {
                   toast.error((err as Error).message);

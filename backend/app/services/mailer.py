@@ -5,12 +5,18 @@ import html
 import logging
 import smtplib
 import ssl
+from datetime import UTC, datetime
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 
 from app.core.config import settings
 
 log = logging.getLogger(__name__)
+
+TIMEOUT = 10  # seconds; a blocked SMTP port must not hang anything for long
+# Last delivery outcome, shown in the admin panel ("Почта" status).
+last_result: dict = {"ok": None, "at": None, "error": None, "to": None}
+_background: set[asyncio.Task] = set()
 
 
 def _layout(title: str, body_html: str, button: tuple[str, str] | None = None) -> str:
@@ -34,11 +40,11 @@ def _layout(title: str, body_html: str, button: tuple[str, str] | None = None) -
 def _send_sync(message: EmailMessage) -> None:
     context = ssl.create_default_context()
     if settings.smtp_security == "ssl":
-        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=context, timeout=20) as smtp:
+        with smtplib.SMTP_SSL(settings.smtp_host, settings.smtp_port, context=context, timeout=TIMEOUT) as smtp:
             smtp.login(settings.smtp_user, settings.smtp_password)
             smtp.send_message(message)
     else:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=TIMEOUT) as smtp:
             smtp.starttls(context=context)
             smtp.login(settings.smtp_user, settings.smtp_password)
             smtp.send_message(message)
@@ -62,10 +68,30 @@ async def send(to: str, subject: str, title: str, body_html: str, *, text: str,
     message.add_alternative(_layout(title, body_html, button), subtype="html")
     try:
         await asyncio.to_thread(_send_sync, message)
-        return True
-    except (smtplib.SMTPException, OSError):
+    except (smtplib.SMTPException, OSError) as error:
         log.exception("failed to send %r to %s", subject, to)
+        last_result.update(ok=False, at=datetime.now(UTC).isoformat(), to=to, error=_explain(error))
         return False
+    last_result.update(ok=True, at=datetime.now(UTC).isoformat(), to=to, error=None)
+    return True
+
+
+def send_later(*args, **kwargs) -> None:
+    """Fire-and-forget: the HTTP response doesn't wait for SMTP."""
+    task = asyncio.create_task(send(*args, **kwargs))
+    _background.add(task)
+    task.add_done_callback(_background.discard)
+
+
+def _explain(error: Exception) -> str:
+    text = f"{type(error).__name__}: {error}"
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        return "Неверный логин или пароль ящика (SMTP_USER / SMTP_PASSWORD). " + text
+    if not isinstance(error, smtplib.SMTPException):  # socket-level: timeout, refused, DNS
+        return (f"Нет соединения с {settings.smtp_host}:{settings.smtp_port}. Возможно, исходящий порт закрыт "
+                "у хостинга — попробуйте SMTP_PORT=587 и SMTP_SECURITY=starttls или напишите в поддержку Timeweb. "
+                + text)
+    return text
 
 
 def paragraph(text: str) -> str:

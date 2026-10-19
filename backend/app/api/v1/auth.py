@@ -88,12 +88,12 @@ async def support(body: SupportIn, user: CurrentUser, db: DB) -> dict:
     db.add(ticket)
     await db.commit()
     # To the support inbox; "Reply" in the mail client goes straight to the user.
-    await mailer.send(
+    mailer.send_later(
         settings.support_email, f"[Nova #{ticket.id}] {body.subject}", f"Обращение #{ticket.id}",
         mailer.paragraph(f"От: {user.name} <{user.email}>\n\n{body.message}"),
         text=f"От: {user.name} <{user.email}>\n\n{body.message}", reply_to=user.email,
     )
-    await mailer.send(
+    mailer.send_later(
         user.email, f"Мы получили ваше обращение #{ticket.id}", "Обращение получено",
         mailer.paragraph(f"Спасибо! Мы ответим на {user.email} в течение рабочего дня.\n\nТема: {body.subject}"),
         text=f"Мы получили ваше обращение #{ticket.id} и ответим в течение рабочего дня.",
@@ -119,7 +119,7 @@ async def forgot_password(body: ForgotIn, db: DB) -> dict:
         db.add(PasswordReset(user_id=user.id, token_hash=token_hash(token), expires_at=datetime.now(UTC) + RESET_TTL))
         await db.commit()
         link = f"{settings.public_url}/reset-password?token={token}"
-        await mailer.send(
+        mailer.send_later(
             user.email, "Восстановление пароля Nova AI", "Восстановление пароля",
             mailer.paragraph("Вы запросили смену пароля. Ссылка действует 1 час.\n\n"
                              "Если это были не вы — просто проигнорируйте письмо."),

@@ -19,7 +19,7 @@ export function EstimatesPicker({ packages, onPick }: { packages: Package[]; onP
   const pkg = packages.find((p) => p.slug === scenario.package);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,280px)_1fr]">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,280px)_1fr]">
       <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
         {data.scenarios.map((s, i) => (
           <button

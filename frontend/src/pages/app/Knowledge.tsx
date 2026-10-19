@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { ArrowLeft, BookOpen, FileText, Plus, Search, StickyNote, Trash2, UploadCloud } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, MessageSquare, Plus, Search, StickyNote, Trash2, UploadCloud } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -62,6 +62,12 @@ function BaseDetail({ kb }: { kb: KnowledgeBase }) {
     if (query.trim()) setHits(await get(`/knowledge/${kb.id}/search?q=${encodeURIComponent(query)}`));
   };
 
+  const askInChat = async () => {
+    const chat = await post<{ id: number }>("/chats", { knowledge_base_id: kb.id, title: `По базе «${kb.name}»` });
+    qc.invalidateQueries({ queryKey: ["chats"] });
+    navigate(`/app/chat/${chat.id}`);
+  };
+
   const removeBase = async () => {
     if (!confirm(`Удалить базу «${kb.name}» со всеми документами?`)) return;
     await del(`/knowledge/${kb.id}`);
@@ -77,6 +83,7 @@ function BaseDetail({ kb }: { kb: KnowledgeBase }) {
         subtitle={kb.description || "Документы разбиваются на фрагменты и индексируются. Подключите базу к чату или агенту — ответы будут со ссылками на источники."}
         action={
           <div className="flex gap-2">
+            <Button onClick={askInChat} disabled={!docs.some((d) => d.status === "ready")}><MessageSquare className="h-4 w-4" /> Спросить по этой базе</Button>
             <Button variant="secondary" onClick={() => setNoteOpen(true)}><StickyNote className="h-4 w-4" /> Заметка</Button>
             <Button variant="danger" size="icon" onClick={removeBase} aria-label="Удалить базу"><Trash2 className="h-4 w-4" /></Button>
           </div>
@@ -101,7 +108,20 @@ function BaseDetail({ kb }: { kb: KnowledgeBase }) {
         <p className="mt-1 text-sm text-zinc-500">PDF, TXT, Markdown, CSV, JSON, HTML · до 10 МБ</p>
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {[
+          ["1", "Загрузите документы", "PDF, TXT, Markdown, CSV — или вставьте текст кнопкой «Заметка»."],
+          ["2", "Дождитесь «Готов»", "Документ разбивается на фрагменты и индексируется за несколько секунд."],
+          ["3", "Подключите к чату или агенту", "«Спросить по этой базе», кнопка «База знаний» под полем ввода в любом чате или поле «База знаний» в настройках агента."],
+        ].map(([n, t, d]) => (
+          <div key={n} className="flex gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-nova-500/20 text-sm font-bold text-nova-200">{n}</span>
+            <span><span className="block text-sm font-semibold">{t}</span><span className="text-xs leading-5 text-zinc-400">{d}</span></span>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1.3fr_1fr]">
         <div>
           <h2 className="mb-3 font-bold">Документы · {docs.length}</h2>
           <motion.div variants={listMotion.container} initial="hidden" animate="show" className="space-y-2">

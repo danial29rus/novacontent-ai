@@ -41,7 +41,7 @@ function KnowledgePicker({ value, onChange }: { value: number | null; onChange: 
         )}
       >
         <BookOpen className="h-3.5 w-3.5" />
-        <span className="max-w-[8rem] truncate">{current ? current.name : "База знаний"}</span>
+        <span className="max-w-[10rem] truncate">{current ? `База: ${current.name}` : "Подключить базу знаний"}</span>
         <ChevronDown className="h-3 w-3" />
       </button>
       <AnimatePresence>
@@ -129,6 +129,7 @@ export default function ChatPage() {
   const setBalance = useSetBalance();
   const { data: models = [] } = useModels();
   const { data: agents = [] } = useAgents();
+  const { data: knowledgeBases = [] } = useKnowledge();
 
   const { data: chat } = useQuery({ queryKey: ["chat", id], queryFn: () => get<Chat>(`/chats/${id}`), enabled: !!id });
   const { data: history, isLoading } = useQuery({
@@ -225,6 +226,7 @@ export default function ChatPage() {
   const modelId = id ? chat?.model_id ?? null : newModel ?? agent?.model_id ?? null;
   const kbId = id ? chat?.knowledge_base_id ?? null : newKb;
   const modelTitle = models.find((m) => m.id === modelId)?.title;
+  const kbName = knowledgeBases.find((b) => b.id === kbId)?.name;
 
   const toolbar = (
     <>
@@ -268,6 +270,11 @@ export default function ChatPage() {
         <div className="flex items-center gap-2 border-b border-white/[0.06] px-3 py-2.5 sm:px-5">
           {agent && <AgentAvatar emoji={agent.emoji} color={agent.color} size="sm" />}
           <h1 className="min-w-0 flex-1 truncate text-sm font-bold sm:text-base">{chat?.title ?? (agent ? agent.name : "Новый чат")}</h1>
+          {kbName && (
+            <span className="hidden max-w-[14rem] items-center gap-1.5 truncate rounded-full border border-aqua-400/30 bg-aqua-400/10 px-2.5 py-1 text-xs font-semibold text-aqua-200 sm:flex" title="Ответы опираются на документы этой базы">
+              <BookOpen className="h-3.5 w-3.5 shrink-0" /> {kbName}
+            </span>
+          )}
           <ModelPicker value={modelId} align="right" onChange={(m) => (id ? updateChat({ model_id: m }) : setNewModel(m))} />
           <Button variant="ghost" size="icon" className="xl:hidden" onClick={() => setListOpen(true)} aria-label="Список чатов">
             <MessageSquare className="h-4 w-4" />

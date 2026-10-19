@@ -191,13 +191,13 @@ async def reply_ticket(ticket_id: int, body: TicketReplyIn, actor: AdminUser, db
     ticket.reply, ticket.replied_at, ticket.status = body.message, datetime.now(UTC), "closed"
     db.add(AuditEvent(actor_id=actor.id, action="ticket_reply", details={"ticket_id": ticket_id, "user_id": user.id}))
     await db.commit()
-    sent = await mailer.send(
+    mailer.send_later(
         user.email, f"Re: {ticket.subject} [Nova #{ticket.id}]", "Ответ поддержки Nova AI",
         mailer.paragraph(body.message) + f'<p style="color:#71717a;border-left:2px solid #2c2c4a;padding-left:12px">'
         f'Ваше обращение: {mailer.html.escape(ticket.message[:1000])}</p>',
         text=f"{body.message}\n\n> {ticket.message[:1000]}", reply_to=settings.support_email,
     )
-    return {"ok": True, "emailed": sent}
+    return {"ok": True, "emailed": settings.mail_enabled}
 
 
 @router.post("/tickets/{ticket_id}/close", status_code=204)
@@ -239,3 +239,22 @@ def backups(_: AdminUser) -> dict:  # sync: file I/O runs in the threadpool
         "files": [{"name": f.name, "size_bytes": f.stat().st_size,
                    "created_at": datetime.fromtimestamp(f.stat().st_mtime, UTC)} for f in files[:30]],
     }
+
+
+
+@router.get("/mail")
+async def mail_status(_: AdminUser) -> dict:
+    return {"enabled": settings.mail_enabled, "host": settings.smtp_host, "port": settings.smtp_port,
+            "user": settings.smtp_user, "support_email": settings.support_email, "last": mailer.last_result}
+
+
+@router.post("/mail/test")
+async def mail_test(actor: AdminUser) -> dict:
+    """Sends a test letter synchronously so the admin sees the real SMTP error, if any."""
+    if not settings.mail_enabled:
+        return {"ok": False, "error": "SMTP не настроен: заполните SMTP_HOST, SMTP_USER, SMTP_PASSWORD в .env "
+                                      "и выполните docker compose up -d"}
+    ok = await mailer.send(settings.support_email, "Проверка почты Nova AI", "Почта работает ✦",
+                           mailer.paragraph(f"Тестовое письмо отправлено из админки ({actor.email})."),
+                           text="Тестовое письмо из админки Nova AI.")
+    return {"ok": ok, "to": settings.support_email, "error": None if ok else mailer.last_result["error"]}
