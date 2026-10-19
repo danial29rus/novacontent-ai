@@ -13,7 +13,21 @@ say "1/6 Docker"
 if ! command -v docker >/dev/null 2>&1; then
   curl -fsSL https://get.docker.com | sh
 fi
-docker compose version >/dev/null || { echo "Нужен Docker Compose v2"; exit 1; }
+# Docker from Ubuntu's own repo (docker.io) ships without the compose plugin: add it.
+if ! docker compose version >/dev/null 2>&1; then
+  echo "Нет плагина docker compose — устанавливаю"
+  apt-get update -qq || true
+  apt-get install -y -qq docker-compose-plugin >/dev/null 2>&1 \
+    || apt-get install -y -qq docker-compose-v2 >/dev/null 2>&1 \
+    || {
+      arch=$(uname -m); [ "$arch" = "aarch64" ] && arch=aarch64 || arch=x86_64
+      mkdir -p /usr/local/lib/docker/cli-plugins
+      curl -fsSL "https://github.com/docker/compose/releases/download/v2.29.7/docker-compose-linux-$arch" \
+        -o /usr/local/lib/docker/cli-plugins/docker-compose
+      chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+    }
+fi
+docker compose version || { echo "Не удалось установить Docker Compose v2"; exit 1; }
 systemctl enable --now docker >/dev/null 2>&1 || true
 
 say "2/6 Память и порты"
