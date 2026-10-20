@@ -12,4 +12,4 @@ sed -e "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(rand 24)/" \
 chmod 600 .env
 echo "Создан .env. Пароль администратора:"
 grep '^ADMIN_PASSWORD=' .env | cut -d= -f2
-echo "Осталось вписать: OPENAI_API_KEY, SMTP_PASSWORD, YOOKASSA_SHOP_ID, YOOKASSA_SECRET_KEY."
+echo "Осталось вписать: OPENAI_API_KEY, SMTP_PASSWORD. Платёжную систему подключите отдельным адаптером после выбора провайдера."

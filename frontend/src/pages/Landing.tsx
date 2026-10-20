@@ -4,7 +4,7 @@ import { ArrowRight, Bot, BookOpen, Check, Layers, MessageSquare, ShieldCheck, S
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { EstimatesPicker } from "@/components/Estimates";
-import { LEGAL_LINKS, usePublicConfig } from "@/pages/Legal";
+import { LegalLinks, usePublicConfig } from "@/pages/Legal";
 import { CustomTopup, PackageCard } from "@/pages/app/Billing";
 import { Aurora, Logo, LogoMark, ProviderDot } from "@/components/Brand";
 import { Button } from "@/components/ui";
@@ -298,7 +298,7 @@ export default function Landing() {
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-4 text-sm text-zinc-500 sm:flex-row sm:px-6">
           <Logo />
           <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-            {LEGAL_LINKS.map(([s, t]) => <Link key={s} to={`/legal/${s}`} className="hover:text-white">{t}</Link>)}
+            <LegalLinks />
             <a href={`mailto:${supportEmail}`} className="flex items-center gap-1.5 text-nova-300 hover:text-nova-200"><Mail className="h-4 w-4" /> {supportEmail}</a>
           </nav>
           <p className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> © {new Date().getFullYear()} Nova AI</p>

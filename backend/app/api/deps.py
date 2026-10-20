@@ -1,16 +1,17 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import ratelimit
-from app.core.security import token_hash
+from app.core.security import new_token, token_hash
 from app.db.session import get_db
 from app.models import Session, User
 
 COOKIE = "nova_session"
+RATE_LIMIT_COOKIE = "nova_rate_limit"
 
 DB = Annotated[AsyncSession, Depends(get_db)]
 
@@ -33,8 +34,13 @@ async def admin_user(user: Annotated[User, Depends(current_user)]) -> User:
     return user
 
 
-async def rate_limited(request: Request) -> None:
-    identity = request.cookies.get(COOKIE) or (request.client.host if request.client else "anon")
+async def rate_limited(request: Request, response: Response) -> None:
+    """Limit by an account session or a random browser token, never by IP address."""
+    identity = request.cookies.get(COOKIE) or request.cookies.get(RATE_LIMIT_COOKIE)
+    if not identity:
+        identity = new_token()
+        response.set_cookie(RATE_LIMIT_COOKIE, identity, max_age=86_400, httponly=True,
+                            secure=settings.cookie_secure, samesite="lax", path="/")
     if not await ratelimit.allow(identity):
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Слишком много запросов. Подождите минуту.")
 

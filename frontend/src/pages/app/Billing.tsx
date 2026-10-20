@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { motion } from "framer-motion";
-import { ArrowDownLeft, ArrowUpRight, Check, Gift, Shield, Sparkles, Ticket, Users, X } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Check, Gift, Shield, ShieldCheck, Sparkles, Ticket, Users, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { useMe, useModels, useServices, useSetBalance } from "@/hooks/data";
 import { get, post } from "@/lib/api";
 import { date, number, rub, sparks } from "@/lib/format";
 import type { LedgerEntry, Package } from "@/lib/types";
-import { usePublicConfig } from "@/pages/Legal";
+import { LegalLinks, usePublicConfig } from "@/pages/Legal";
 
 const KIND: Record<LedgerEntry["kind"], { label: string; icon: typeof Gift; tone: string }> = {
   welcome: { label: "Бонус", icon: Gift, tone: "text-emerald-300 bg-emerald-400/10" },
@@ -286,6 +286,12 @@ export default function Billing() {
       </div>
       <div className="mt-4">
         <CustomTopup promo={promo} onBuy={buyCustom} loading={buying === "custom"} />
+      </div>
+      <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+        <p className="flex max-w-xl items-start gap-2 text-zinc-400"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+          Оплата проходит на защищённой странице платёжного провайдера. Данные карты Nova AI не получает и не хранит.
+        </p>
+        <LegalLinks className="shrink-0 text-xs text-zinc-500" />
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.3fr]">

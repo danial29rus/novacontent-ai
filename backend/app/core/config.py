@@ -33,10 +33,8 @@ class Settings(BaseSettings):
     # Referral program
     referral_signup_bonus: int = 50  # sparks for the invited friend on sign-up
     referral_percent: int = 10  # % of the friend's paid sparks credited to the referrer
-    payment_provider: str = "mock"  # mock | yookassa
+    payment_provider: str = "mock"  # mock only; add the chosen provider as a dedicated adapter
     public_url: str = "http://localhost:8080"
-    yookassa_shop_id: str | None = None
-    yookassa_secret_key: str | None = None
 
     # Context window management for chats.
     context_budget_tokens: int = 12_000
@@ -82,8 +80,7 @@ class Settings(BaseSettings):
         warnings = []
         if not self.openai_api_key:
             warnings.append("OPENAI_API_KEY пуст — чаты и услуги будут отвечать «модель недоступна»")
-        if not (self.payment_provider == "yookassa" and self.yookassa_shop_id and self.yookassa_secret_key):
-            warnings.append("ЮKassa не настроена — пополнение баланса закрыто")
+        warnings.append("Платёжная система не подключена — пополнение баланса закрыто")
         if not self.mail_enabled:
             warnings.append("SMTP не настроен — письма (поддержка, восстановление пароля) не отправляются")
         return warnings

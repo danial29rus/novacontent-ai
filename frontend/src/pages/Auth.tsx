@@ -110,7 +110,7 @@ export function Register() {
         </Field>
         <label className="flex items-start gap-3 text-sm text-zinc-400">
           <input name="terms" type="checkbox" required className="mt-0.5 h-4 w-4 rounded accent-nova-500" />
-          <span>Принимаю <Link to="/legal/terms" target="_blank" className="text-nova-300 underline">соглашение</Link>, <Link to="/legal/offer" target="_blank" className="text-nova-300 underline">оферту</Link> и <Link to="/legal/privacy" target="_blank" className="text-nova-300 underline">политику конфиденциальности</Link></span>
+          <span>Принимаю <Link to="/legal/terms" target="_blank" className="text-nova-300 underline">соглашение</Link>, <Link to="/legal/payments" target="_blank" className="text-nova-300 underline">условия оплаты и возврата</Link> и <Link to="/legal/privacy" target="_blank" className="text-nova-300 underline">политику конфиденциальности</Link></span>
         </label>
         <Button type="submit" loading={loading} className="w-full" size="lg">Создать аккаунт <ArrowRight className="h-4 w-4" /></Button>
       </form>

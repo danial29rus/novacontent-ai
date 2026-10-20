@@ -27,6 +27,7 @@ import { useChats, useMe } from "@/hooks/data";
 import { get, post } from "@/lib/api";
 import { useUnreadTickets } from "@/pages/app/Support";
 import { sparks } from "@/lib/format";
+import { LegalLinks } from "@/pages/Legal";
 
 const NAV = [
   { to: "/app", label: "Главная", icon: LayoutDashboard, end: true },
@@ -169,6 +170,11 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       {!chats?.length && <div className="flex-1" />}
 
       <BalanceCard onNavigate={onNavigate} />
+
+      <div className="border-t border-white/[0.06] pt-3">
+        <p className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">Документы</p>
+        <LegalLinks showIcons className="flex-col items-start gap-1 px-1 text-[11px] text-zinc-500" />
+      </div>
 
       <div className="flex items-center gap-3 rounded-xl px-1">
         <Link to="/app/profile" onClick={onNavigate} className="flex min-w-0 flex-1 items-center gap-3">

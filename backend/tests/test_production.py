@@ -24,7 +24,7 @@ def test_unsafe_production_settings_are_reported(override):
 
 
 def test_missing_integrations_are_warnings_not_blockers():
-    settings_ = prod(payment_provider="yookassa", yookassa_shop_id=None, openai_api_key=None, smtp_host=None)
+    settings_ = prod(openai_api_key=None, smtp_host=None)
     assert settings_.production_problems() == []
     assert len(settings_.production_warnings()) == 3
 

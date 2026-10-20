@@ -51,8 +51,6 @@ if [ ! -f .env ]; then
     echo "Введите ключи (Enter — пропустить, можно вписать позже в .env):"
     ask_secret "OPENAI_API_KEY" OPENAI_API_KEY
     ask_secret "Пароль ящика support@ (SMTP_PASSWORD)" SMTP_PASSWORD
-    printf "  YOOKASSA_SHOP_ID: "; read -r v; set_env YOOKASSA_SHOP_ID "$v"
-    ask_secret "YOOKASSA_SECRET_KEY" YOOKASSA_SECRET_KEY
   fi
 else
   echo ".env уже есть — оставляю как есть"
@@ -99,5 +97,5 @@ cat <<INFO
 INFO
 grep -qE '^OPENAI_API_KEY=$' .env && echo "  ⚠ Не задан OPENAI_API_KEY — впишите в .env и выполните: docker compose up -d"
 grep -qE '^SMTP_PASSWORD=$' .env && echo "  ⚠ Не задан SMTP_PASSWORD — письма не отправляются"
-grep -qE '^YOOKASSA_SHOP_ID=$' .env && echo "  ⚠ ЮKassa не настроена — пополнение закрыто"
+grep -qE '^PAYMENT_PROVIDER=mock$' .env && echo "  ⚠ Платёжная система не подключена — пополнение закрыто"
 exit 0

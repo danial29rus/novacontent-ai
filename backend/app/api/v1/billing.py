@@ -1,10 +1,9 @@
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentUser, RateLimited
-from app.core.config import settings
 from app.models import AIModel, LedgerEntry, Payment, TopupPackage
 from app.schemas import AIModelOut, LedgerOut, PackageOut, PaymentOut, TopupIn
 from app.services import billing, estimates, growth
@@ -96,21 +95,3 @@ async def payments(user: CurrentUser, db: DB) -> list[Payment]:
     return list((await db.scalars(
         select(Payment).where(Payment.user_id == user.id).order_by(Payment.id.desc()).limit(50)
     )).all())
-
-
-@router.post("/billing/webhook/yookassa", include_in_schema=False)
-async def yookassa_webhook(request: Request, db: DB) -> dict:
-    if settings.payment_provider != "yookassa":
-        raise HTTPException(status.HTTP_404_NOT_FOUND)
-    body = await request.json()
-    provider_id = (body.get("object") or {}).get("id")
-    payment = await db.scalar(select(Payment).where(Payment.provider_payment_id == provider_id).with_for_update())
-    if payment is None:
-        return {"ok": True}
-    remote = await billing.yookassa_status(provider_id)
-    if remote == "succeeded":
-        await billing.settle(db, payment)
-    elif remote == "canceled":
-        payment.status = "canceled"
-    await db.commit()
-    return {"ok": True}

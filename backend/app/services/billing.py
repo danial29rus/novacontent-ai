@@ -2,7 +2,6 @@ import math
 import uuid
 from datetime import UTC, datetime
 
-import httpx
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,10 +15,8 @@ class InsufficientBalance(Exception):
 
 
 def payments_enabled() -> bool:
-    """The mock provider credits sparks without money, so it is never allowed in production."""
-    if settings.payment_provider == "yookassa":
-        return bool(settings.yookassa_shop_id and settings.yookassa_secret_key)
-    return not settings.is_production
+    """The built-in mock credits sparks without money and is never available in production."""
+    return settings.payment_provider == "mock" and not settings.is_production
 
 
 def usage_cost(model: AIModel, usage: Usage) -> int:
@@ -82,9 +79,9 @@ async def create_payment(db: AsyncSession, user: User, package: TopupPackage | N
                          amount_rub: int | None = None, promo=None) -> tuple[Payment, str | None]:
     """Returns the payment and a URL to send the user to (None when it settled instantly)."""
     if package is not None:
-        price, sparks, title = package.price_kopeks, package_tokens(package), package.title
+        price, sparks = package.price_kopeks, package_tokens(package)
     else:
-        price, sparks, title = amount_rub * 100, custom_sparks(amount_rub), f"{amount_rub} ₽"
+        price, sparks = amount_rub * 100, custom_sparks(amount_rub)
     from app.services.growth import promo_bonus
 
     bonus = promo_bonus(promo, sparks)
@@ -94,10 +91,8 @@ async def create_payment(db: AsyncSession, user: User, package: TopupPackage | N
     db.add(payment)
     await db.flush()
 
-    if settings.payment_provider == "yookassa":
-        url = await _yookassa_create(payment, title)
-        await db.commit()
-        return payment, url
+    if settings.payment_provider != "mock":
+        raise RuntimeError("Платёжный провайдер не подключён")
 
     # mock: settles immediately so the full flow works locally.
     payment.provider_payment_id = f"mock-{uuid.uuid4()}"
@@ -117,34 +112,3 @@ async def settle(db: AsyncSession, payment: Payment) -> None:
     from app.services.growth import on_payment_settled
 
     await on_payment_settled(db, payment)
-
-
-async def _yookassa_create(payment: Payment, title: str) -> str:
-    async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.post(
-            "https://api.yookassa.ru/v3/payments",
-            auth=(settings.yookassa_shop_id or "", settings.yookassa_secret_key or ""),
-            headers={"Idempotence-Key": f"nova-{payment.id}"},
-            json={
-                "amount": {"value": f"{payment.amount_kopeks / 100:.2f}", "currency": "RUB"},
-                "capture": True,
-                "confirmation": {"type": "redirect", "return_url": f"{settings.public_url}/app/billing"},
-                "description": f"Nova AI: пополнение {title}",
-                "metadata": {"payment_id": payment.id},
-            },
-        )
-        response.raise_for_status()
-        data = response.json()
-    payment.provider_payment_id = data["id"]
-    return data["confirmation"]["confirmation_url"]
-
-
-async def yookassa_status(provider_payment_id: str) -> str:
-    """Webhook bodies are not trusted: we re-read the payment from the API."""
-    async with httpx.AsyncClient(timeout=20) as client:
-        response = await client.get(
-            f"https://api.yookassa.ru/v3/payments/{provider_payment_id}",
-            auth=(settings.yookassa_shop_id or "", settings.yookassa_secret_key or ""),
-        )
-        response.raise_for_status()
-        return response.json()["status"]
