@@ -30,8 +30,9 @@ const STATUS: Record<TicketStatus, { label: string; staffLabel: string; tone: "a
   closed: { label: "Закрыт", staffLabel: "Закрыт", tone: "zinc" },
 };
 
-export function StatusBadge({ status, staff }: { status: TicketStatus; staff?: boolean }) {
-  const s = STATUS[status];
+export function StatusBadge({ status, staff }: { status: TicketStatus | string | null | undefined; staff?: boolean }) {
+  // Older tickets can contain a legacy status; never let one record break the whole support screen.
+  const s = typeof status === "string" ? STATUS[status as TicketStatus] ?? STATUS.open : STATUS.open;
   return <Badge tone={s.tone}>{staff ? s.staffLabel : s.label}</Badge>;
 }
 
@@ -75,8 +76,12 @@ export function TicketThread({
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
+  // A malformed legacy response must not take down the entire application.
+  const thread = Array.isArray(messages)
+    ? messages.filter((message): message is TicketMessage => !!message && typeof message === "object")
+    : [];
 
-  useEffect(() => bottom.current?.scrollIntoView({ block: "end" }), [messages.length]);
+  useEffect(() => bottom.current?.scrollIntoView({ block: "end" }), [thread.length]);
 
   const send = async () => {
     if (!text.trim() || busy) return;
@@ -112,7 +117,7 @@ export function TicketThread({
       </div>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-5">
-        {messages.map((m) => {
+        {thread.map((m) => {
           if (m.is_event) {
             return (
               <p key={m.id} className="text-center text-xs text-zinc-500">
