@@ -28,7 +28,7 @@ const SUGGESTIONS = [
 ];
 
 function KnowledgePicker({ value, onChange }: { value: number | null; onChange: (id: number | null) => void }) {
-  const { data: bases = [] } = useKnowledge();
+  const { data: bases = [], isLoading } = useKnowledge();
   const [open, setOpen] = useState(false);
   const current = bases.find((b) => b.id === value);
   return (
@@ -55,12 +55,14 @@ function KnowledgePicker({ value, onChange }: { value: number | null; onChange: 
             <button onClick={() => { onChange(null); setOpen(false); }} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm hover:bg-white/[0.05]">
               Без базы знаний {value === null && <Check className="h-4 w-4 text-nova-300" />}
             </button>
+            {isLoading && <p className="px-3 py-2 text-xs text-zinc-500">Загружаем базы знаний…</p>}
             {bases.map((b) => (
               <button key={b.id} onClick={() => { onChange(b.id); setOpen(false); }} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm hover:bg-white/[0.05]">
                 <span className="truncate">{b.name} <span className="text-xs text-zinc-500">· {b.documents_count} док.</span></span>
                 {value === b.id && <Check className="h-4 w-4 text-nova-300" />}
               </button>
             ))}
+            {!isLoading && !bases.length && <p className="px-3 py-2 text-xs leading-5 text-zinc-500">Баз пока нет. Создайте базу и добавьте в неё документы.</p>}
             <Link to="/app/knowledge" className="mt-1 block rounded-xl px-3 py-2 text-xs font-semibold text-nova-300 hover:bg-white/[0.05]">+ Создать базу знаний</Link>
           </motion.div>
         )}
@@ -219,8 +221,15 @@ export default function ChatPage() {
 
   const updateChat = async (data: Partial<Chat>) => {
     if (!id) return;
-    const updated = await patch<Chat>(`/chats/${id}`, data);
-    qc.setQueryData(["chat", id], updated);
+    try {
+      const updated = await patch<Chat>(`/chats/${id}`, data);
+      qc.setQueryData(["chat", id], updated);
+      if ("knowledge_base_id" in data) {
+        toast.success(data.knowledge_base_id ? "База знаний подключена к чату" : "База знаний отключена");
+      }
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   const modelId = id ? chat?.model_id ?? null : newModel ?? agent?.model_id ?? null;

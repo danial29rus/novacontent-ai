@@ -52,7 +52,8 @@ export function Composer({
         className="block max-h-60 w-full resize-none bg-transparent px-3 pb-2 pt-2.5 text-[15px] leading-6 text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
       />
       <div className="flex items-center justify-between gap-2 px-1">
-        <div className="flex min-w-0 items-center gap-1.5 overflow-x-auto">{toolbar}</div>
+        {/* Menus in the toolbar open upward; do not clip them with a scrolling ancestor. */}
+        <div className="flex min-w-0 items-center gap-1.5 overflow-visible">{toolbar}</div>
         {busy ? (
           <button
             onClick={onStop}

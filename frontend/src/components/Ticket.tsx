@@ -2,6 +2,7 @@ import clsx from "clsx";
 import { motion } from "framer-motion";
 import { ArrowUp, Headset, Lock, RotateCcw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Badge, Button } from "@/components/ui";
 import { date, relative } from "@/lib/format";
 
@@ -83,6 +84,8 @@ export function TicketThread({
     try {
       await onSend(text.trim());
       setText("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Не удалось отправить сообщение. Попробуйте ещё раз.");
     } finally {
       setBusy(false);
     }
