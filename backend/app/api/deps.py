@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import ratelimit
+from app.core.config import settings
 from app.core.security import new_token, token_hash
 from app.db.session import get_db
 from app.models import Session, User
