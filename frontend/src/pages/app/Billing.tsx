@@ -26,6 +26,8 @@ const KIND: Record<LedgerEntry["kind"], { label: string; icon: typeof Gift; tone
 
 const total = (p: Package) => p.tokens + Math.floor((p.tokens * p.bonus_percent) / 100);
 
+const PACKAGE_DESCRIPTION = "Предоплаченный пакет доступа к чатам, AI-агентам и готовым AI-услугам Nova AI. Искры зачисляются на баланс после подтверждения оплаты и списываются только за выбранную функцию по цене, показанной до её запуска.";
+
 export function PackageCard({ p, onBuy, loading, promo }: { p: Package; onBuy: () => void; loading?: boolean; promo?: AppliedPromo | null }) {
   const promoExtra = promo && p.price_kopeks / 100 >= promo.min_topup_rub ? Math.floor((total(p) * promo.value) / 100) : 0;
   return (
@@ -43,6 +45,8 @@ export function PackageCard({ p, onBuy, loading, promo }: { p: Package; onBuy: (
           {p.bonus_percent > 0 ? <>{sparks(p.tokens)} <span className="font-semibold text-emerald-300">+{p.bonus_percent}% бонусом</span></> : "без бонуса"}
         </p>
         <p className="mt-1 text-xs text-zinc-500">{(p.price_kopeks / 100 / total(p)).toFixed(2).replace(".", ",")} ₽ за ✦</p>
+        <p className="mt-4 text-xs leading-5 text-zinc-400">{PACKAGE_DESCRIPTION}</p>
+        <p className="mt-2 text-xs font-medium text-zinc-500">Цифровая услуга · доступ активируется после подтверждения оплаты</p>
         <Button className="mt-6" variant={p.highlight ? "primary" : "secondary"} loading={loading} onClick={onBuy}>Пополнить</Button>
       </div>
     </div>
@@ -83,6 +87,7 @@ export function CustomTopup({ onBuy, loading = false, promo = null, ctaLabel }: 
         <div>
           <h3 className="text-lg font-bold">Своя сумма</h3>
           <p className="mt-1 text-sm text-zinc-400">Пополните ровно на столько, сколько нужно. От {min} ₽, бонус растёт с суммой.</p>
+          <p className="mt-2 text-xs leading-5 text-zinc-500">Искры — внутренняя расчётная единица для доступа к функциям Nova AI. Они зачисляются на баланс после подтверждения оплаты и расходуются только при запуске выбранной функции.</p>
           <div className="relative mt-4">
             <input
               type="number" inputMode="numeric" min={min} max={500000} step={100} value={amount || ""}
