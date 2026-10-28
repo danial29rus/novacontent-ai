@@ -9,6 +9,27 @@ export type PublicConfig = { support_email: string; public_url: string; payments
 export const usePublicConfig = () =>
   useQuery({ queryKey: ["public-config"], queryFn: () => get<PublicConfig>("/public/config"), staleTime: Infinity });
 
+export const COMPANY_DETAILS = {
+  name: "SENEVEXITI TECH LTD",
+  registrationNumber: "НЕ461484",
+  address: "Nikou Georgiou, 6, Agioi Omologites, 1095, Nicosia, Cyprus",
+} as const;
+
+export function CompanyDetails({ compact = false }: { compact?: boolean }) {
+  if (compact) {
+    return <span>{COMPANY_DETAILS.name} · Reg. No. {COMPANY_DETAILS.registrationNumber}</span>;
+  }
+
+  return (
+    <section>
+      <h2 className="font-bold text-white">Реквизиты владельца сервиса</h2>
+      <p className="mt-2 leading-7 text-zinc-300">
+        {COMPANY_DETAILS.name}, registration number {COMPANY_DETAILS.registrationNumber}, {COMPANY_DETAILS.address}.
+      </p>
+    </section>
+  );
+}
+
 type Doc = { title: string; eyebrow: string; summary: string; sections: [string, string][] };
 
 const UPDATED_AT = "20 октября 2026 года";
@@ -122,10 +143,15 @@ export default function Legal() {
             <p className="mt-5 border-y border-white/[0.06] py-3 text-xs text-zinc-500">Последнее обновление: {UPDATED_AT}</p>
             <div className="mt-8 space-y-7">
               {doc.sections.map(([heading, text]) => <section key={heading}><h2 className="font-bold text-white">{heading}</h2><p className="mt-2 leading-7 text-zinc-300">{text}</p></section>)}
+              <CompanyDetails />
             </div>
           </article>
         </div>
-        <footer className="mt-10 border-t border-white/10 pt-6 text-sm text-zinc-500"><LegalLinks /><a href={`mailto:${email}`} className="mt-4 inline-block text-nova-300 transition hover:text-nova-200">{email}</a></footer>
+        <footer className="mt-10 border-t border-white/10 pt-6 text-sm text-zinc-500">
+          <LegalLinks />
+          <p className="mt-4"><CompanyDetails compact /></p>
+          <a href={`mailto:${email}`} className="mt-2 inline-block text-nova-300 transition hover:text-nova-200">{email}</a>
+        </footer>
       </div>
     </div>
   );
