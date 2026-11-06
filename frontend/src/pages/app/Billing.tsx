@@ -291,6 +291,12 @@ export default function Billing() {
       </div>
       <div className="mt-4">
         <CustomTopup promo={promo} onBuy={buyCustom} loading={buying === "custom"} />
+        <p className="mt-3 text-xs text-zinc-500">
+          Оплата через СБП, Искры зачисляются автоматически после подтверждения банком. {" "}
+          <Link to="/legal/products" target="_blank" className="text-nova-300 underline">Что входит в услуги</Link> · {" "}
+          <Link to="/legal/payments" target="_blank" className="text-nova-300 underline">Условия оплаты</Link> · {" "}
+          <Link to="/legal/refund" target="_blank" className="text-nova-300 underline">Политика возврата</Link>
+        </p>
       </div>
       <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.025] p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
         <p className="flex max-w-xl items-start gap-2 text-zinc-400"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />

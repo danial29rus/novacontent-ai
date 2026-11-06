@@ -8,7 +8,7 @@ import { CompanyDetails, LegalLinks, usePublicConfig } from "@/pages/Legal";
 import { CustomTopup, PackageCard } from "@/pages/app/Billing";
 import { Aurora, Logo, LogoMark, ProviderDot } from "@/components/Brand";
 import { Button } from "@/components/ui";
-import { useMe } from "@/hooks/data";
+import { useMe, useServices } from "@/hooks/data";
 import { get } from "@/lib/api";
 import type { Package } from "@/lib/types";
 
@@ -130,6 +130,7 @@ const FAQ = [
 
 export default function Landing() {
   const { data: user } = useMe();
+  const { data: services } = useServices();
   const { data: packages } = useQuery({ queryKey: ["packages"], queryFn: () => get<Package[]>("/billing/packages") });
   const { scrollY } = useScroll();
   const headerBg = useTransform(scrollY, [0, 80], ["rgba(7,7,13,0)", "rgba(7,7,13,0.75)"]);
@@ -237,15 +238,26 @@ export default function Landing() {
           <p className="mt-4 text-zinc-400">Заполните бриф — получите готовый результат за минуту.</p>
         </div>
         <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {SERVICES_PREVIEW.map(([emoji, title, text], i) => (
-            <motion.div key={title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.05 }}
-              className="glass rounded-2xl p-5 transition hover:-translate-y-1 hover:border-nova-400/30">
+          {(services?.length ? services.map((x) => [x.emoji, x.title, x.description, x.price] as const) : SERVICES_PREVIEW.map((x) => [...x, null] as const)).map(([emoji, title, text, price], i) => (
+            <motion.div key={title} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.03 }}
+              className="glass flex flex-col rounded-2xl p-5 transition hover:-translate-y-1 hover:border-nova-400/30">
               <span className="text-3xl">{emoji}</span>
               <h3 className="mt-3 font-bold">{title}</h3>
-              <p className="mt-1 text-sm text-zinc-400">{text}</p>
+              <p className="mt-1 flex-1 text-sm text-zinc-400">{text}</p>
+              {price != null && <p className="mt-3 text-sm font-semibold text-nova-200">{price} ✦ ≈ {price} ₽</p>}
             </motion.div>
           ))}
         </div>
+        <ol className="mx-auto mt-10 grid max-w-4xl gap-3 text-sm text-zinc-300 sm:grid-cols-4">
+          {["Пополните баланс через СБП — от 100 ₽", "Выберите услугу и заполните короткий бриф", "Получите готовый результат за 1–2 минуты", "Он сохранится в «Библиотеке» — копируйте и скачивайте"].map((t, i) => (
+            <li key={t} className="glass rounded-2xl p-4"><b className="text-nova-300">{i + 1}.</b> {t}</li>
+          ))}
+        </ol>
+        <p className="mt-6 text-center text-sm">
+          <Link to="/legal/products" className="text-nova-300 underline hover:text-nova-200">Подробное описание услуг и цен</Link>
+          <span className="text-zinc-600"> · </span>
+          <Link to="/legal/refund" className="text-nova-300 underline hover:text-nova-200">Политика возврата</Link>
+        </p>
       </section>
 
       <section id="pricing" className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
