@@ -7,7 +7,7 @@ down:          ## Stop containers (data is kept; never add -v)
 	docker compose down
 
 logs:
-	./scripts/logs.sh api web caddy
+	./scripts/logs.sh api worker web caddy
 
 test:
 	cd backend && .venv/bin/pytest -q

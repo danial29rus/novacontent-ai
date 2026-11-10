@@ -2,16 +2,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { motion } from "framer-motion";
 import { ArrowDownLeft, ArrowUpRight, Check, Gift, Shield, ShieldCheck, Sparkles, Ticket, Users, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { ProviderDot } from "@/components/Brand";
 import { EstimatesPicker, useEstimates } from "@/components/Estimates";
-import { Button, Card, PageHeader } from "@/components/ui";
+import { SbpDialog, type SbpPayment } from "@/components/SbpDialog";
+import { Badge, Button, Card, PageHeader } from "@/components/ui";
 import { useMe, useModels, useServices, useSetBalance } from "@/hooks/data";
 import { get, post } from "@/lib/api";
-import { date, number, rub, sparks } from "@/lib/format";
-import type { LedgerEntry, Package } from "@/lib/types";
+import { date, number, PAYMENT_METHOD, PAYMENT_STATUS, rub, sparks } from "@/lib/format";
+import type { LedgerEntry, Package, Payment } from "@/lib/types";
 import { LegalLinks, usePublicConfig } from "@/pages/Legal";
 
 const KIND: Record<LedgerEntry["kind"], { label: string; icon: typeof Gift; tone: string }> = {
@@ -54,10 +55,10 @@ export function PackageCard({ p, onBuy, loading, promo }: { p: Package; onBuy: (
 }
 
 type Quote = { ladder: { from_rub: number; bonus_percent: number }[]; min_rub: number };
-const QUICK = [500, 1500, 3000, 7500, 15000, 30000];
+const QUICK = [100, 500, 1500, 3000, 7500, 15000, 30000];
 
 // Log-scale slider: fine control at small amounts, still reaches 100 000 ₽.
-const SLIDER_MIN = 500;
+const SLIDER_MIN = 100;
 const SLIDER_MAX = 100_000;
 const POSITIONS = 1000;
 const stepFor = (rub: number) => (rub < 2_000 ? 10 : rub < 10_000 ? 50 : 100);
@@ -71,7 +72,7 @@ export function CustomTopup({ onBuy, loading = false, promo = null, ctaLabel }: 
 }) {
   const { data: quote } = useQuery({ queryKey: ["quote-ladder"], queryFn: () => get<Quote>("/billing/custom-quote?amount_rub=0"), staleTime: Infinity });
   const [amount, setAmount] = useState(2000);
-  const min = quote?.min_rub ?? 500;
+  const min = quote?.min_rub ?? SLIDER_MIN;
   const ladder = quote?.ladder ?? [];
   const bonus = [...ladder].reverse().find((l) => amount >= l.from_rub)?.bonus_percent ?? 0;
   const next = ladder.find((l) => l.from_rub > amount);
@@ -110,7 +111,7 @@ export function CustomTopup({ onBuy, loading = false, promo = null, ctaLabel }: 
               className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 text-lg font-bold text-zinc-300 transition hover:bg-white/10 active:scale-95">+</button>
           </div>
           <div className="mt-1.5 flex justify-between px-12 text-[11px] text-zinc-500">
-            <span>500 ₽</span><span>шаг {stepFor(amount)} ₽</span><span>100 000 ₽</span>
+            <span>{number(SLIDER_MIN)} ₽</span><span>шаг {stepFor(amount)} ₽</span><span>100 000 ₽</span>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             {QUICK.map((q) => (
@@ -150,6 +151,8 @@ export function CustomTopup({ onBuy, loading = false, promo = null, ctaLabel }: 
     </Card>
   );
 }
+
+const METHOD_LABELS: Record<string, string> = { sbp: "СБП", card: "Карта", sberpay: "SberPay", applepay: "Apple Pay", googlepay: "Google Pay", crypto: "Крипта" };
 
 type AppliedPromo = { code: string; value: number; min_topup_rub: number };
 
@@ -217,15 +220,56 @@ export default function Billing() {
   const packagesRef = useRef<HTMLDivElement>(null);
   const setBalance = useSetBalance();
   const qc = useQueryClient();
+  const { data: methodsInfo } = useQuery({ queryKey: ["pay-methods"], queryFn: () => get<{ methods: string[]; default: string | null }>("/billing/methods") });
+  const [method, setMethod] = useState<string | null>(null);
+  const payMethod = method ?? methodsInfo?.default ?? null;
+  const [sbpPayment, setSbpPayment] = useState<SbpPayment | null>(null);
+  const onSbpPaid = useCallback((balance: number) => {
+    setBalance(balance);
+    qc.invalidateQueries({ queryKey: ["ledger"] });
+    qc.invalidateQueries({ queryKey: ["payments"] });
+  }, [setBalance, qc]);
+
+  type TopupRes = { confirmation_url: string | null; balance: number; payment: { id: number; tokens: number; amount_kopeks: number } };
+  /** true when the payment continues outside this call (QR dialog or redirect). */
+  const continuePayment = (res: TopupRes) => {
+    if (!res.confirmation_url) return false;
+    if (payMethod === "sbp") {
+      setSbpPayment({ id: res.payment.id, amountKopeks: res.payment.amount_kopeks, tokens: res.payment.tokens, checkoutUrl: res.confirmation_url });
+    } else {
+      window.location.href = res.confirmation_url;
+    }
+    return true;
+  };
+
+  // Back from the checkout page: re-check pending payments in case the webhook hasn't arrived yet.
+  // Paused while the QR dialog is open: it polls its own payment.
+  useEffect(() => {
+    if (sbpPayment) return;
+    let tries = 0;
+    let stopped = false;
+    const check = async () => {
+      try {
+        const res = await post<{ credited: number; balance: number }>("/billing/payments/sync", {});
+        if (stopped) return;
+        if (res.credited > 0) {
+          setBalance(res.balance);
+          toast.success("Оплата прошла, искры зачислены");
+          qc.invalidateQueries({ queryKey: ["ledger"] });
+          return;
+        }
+      } catch { /* not critical */ }
+      if (!stopped && ++tries < 4) timer = window.setTimeout(check, 10000);
+    };
+    let timer = window.setTimeout(check, 300);
+    return () => { stopped = true; window.clearTimeout(timer); };
+  }, [qc, setBalance, sbpPayment]);
 
   const buy = async (pkg: Package) => {
     setBuying(pkg.slug);
     try {
-      const res = await post<{ confirmation_url: string | null; balance: number }>("/billing/topup", { package_slug: pkg.slug, promo_code: promo?.code ?? null });
-      if (res.confirmation_url) {
-        window.location.href = res.confirmation_url;
-        return;
-      }
+      const res = await post<TopupRes>("/billing/topup", { package_slug: pkg.slug, promo_code: promo?.code ?? null, payment_method: payMethod });
+      if (continuePayment(res)) return;
       setBalance(res.balance);
       toast.success(`Зачислено ${sparks(total(pkg))}`);
       qc.invalidateQueries({ queryKey: ["ledger"] });
@@ -239,11 +283,8 @@ export default function Billing() {
   const buyCustom = async (amount: number) => {
     setBuying("custom");
     try {
-      const res = await post<{ confirmation_url: string | null; balance: number; payment: { tokens: number } }>("/billing/topup", { amount_rub: amount, promo_code: promo?.code ?? null });
-      if (res.confirmation_url) {
-        window.location.href = res.confirmation_url;
-        return;
-      }
+      const res = await post<TopupRes>("/billing/topup", { amount_rub: amount, promo_code: promo?.code ?? null, payment_method: payMethod });
+      if (continuePayment(res)) return;
       setBalance(res.balance);
       toast.success(`Зачислено ${sparks(res.payment.tokens)}`);
       qc.invalidateQueries({ queryKey: ["ledger"] });
@@ -256,6 +297,7 @@ export default function Billing() {
 
   return (
     <div>
+      <SbpDialog payment={sbpPayment} onClose={() => { setSbpPayment(null); qc.invalidateQueries({ queryKey: ["payments"] }); }} onPaid={onSbpPaid} />
       {config && !config.payments_enabled && (
         <div className="mb-6 rounded-2xl border border-amber-400/30 bg-amber-400/[0.08] p-4 text-sm text-amber-200">
           Приём оплаты подключается. Чтобы пополнить баланс прямо сейчас, напишите нам в{" "}
@@ -280,7 +322,19 @@ export default function Billing() {
 
       <div ref={packagesRef} className="mb-4 mt-10 flex scroll-mt-6 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-bold">Пополнить</h2>
-        <PromoBox applied={promo} onApply={setPromo} onGift={(b) => { setBalance(b); qc.invalidateQueries({ queryKey: ["ledger"] }); }} />
+        <div className="flex flex-wrap items-center gap-3">
+          {(methodsInfo?.methods.length ?? 0) > 1 && (
+            <div className="flex rounded-xl border border-white/10 p-0.5 text-xs font-semibold">
+              {methodsInfo!.methods.map((m) => (
+                <button key={m} onClick={() => setMethod(m)} className={clsx("rounded-lg px-3 py-1.5 transition",
+                  payMethod === m ? "bg-nova-500/20 text-white" : "text-zinc-400 hover:text-white")}>
+                  {METHOD_LABELS[m] ?? m}
+                </button>
+              ))}
+            </div>
+          )}
+          <PromoBox applied={promo} onApply={setPromo} onGift={(b) => { setBalance(b); qc.invalidateQueries({ queryKey: ["ledger"] }); }} />
+        </div>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {packages.map((p, i) => (
@@ -339,7 +393,9 @@ export default function Billing() {
           </Card>
         </div>
 
-        <Card className="h-fit p-5 sm:p-6">
+        <div className="h-fit space-y-6">
+        <TopupHistory onContinue={(p) => setSbpPayment({ id: p.id, amountKopeks: p.amount_kopeks, tokens: p.tokens, checkoutUrl: p.checkout_url })} />
+        <Card className="p-5 sm:p-6">
           <h2 className="font-bold">История операций</h2>
           <div className="mt-4 divide-y divide-white/[0.05]">
             {ledger.map((e) => {
@@ -360,7 +416,44 @@ export default function Billing() {
             {!ledger.length && <p className="py-8 text-center text-sm text-zinc-500">Операций пока нет</p>}
           </div>
         </Card>
+        </div>
       </div>
     </div>
+  );
+}
+
+/** Every top-up request with its status; an unpaid one can be reopened. */
+function TopupHistory({ onContinue }: { onContinue: (p: Payment) => void }) {
+  const { data: payments = [] } = useQuery({ queryKey: ["payments"], queryFn: () => get<Payment[]>("/billing/payments") });
+  if (!payments.length) return null;
+  const fresh = (p: Payment) => Date.now() - new Date(p.created_at).getTime() < 20 * 60_000;
+  return (
+    <Card className="p-5 sm:p-6">
+      <h2 className="font-bold">История пополнений</h2>
+      <div className="mt-4 divide-y divide-white/[0.05]">
+        {payments.map((p) => {
+          const st = PAYMENT_STATUS[p.status] ?? { label: p.status, tone: "zinc" as const };
+          return (
+            <div key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 py-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold">{rub(p.amount_kopeks)} <span className="font-normal text-zinc-400">→ {sparks(p.tokens)}</span></p>
+                <p className="text-[11px] text-zinc-500">
+                  <button type="button" title="Скопировать номер заказа" className="font-mono hover:text-zinc-300"
+                    onClick={() => navigator.clipboard?.writeText(p.order_id).then(() => toast.success("Номер заказа скопирован"))}>
+                    {p.order_id}
+                  </button>
+                  {" · "}{date(p.created_at)}{p.method ? ` · ${PAYMENT_METHOD[p.method] ?? p.method}` : ""}
+                  {p.bonus_sparks > 0 && ` · +${number(p.bonus_sparks)} ✦ по промокоду`}
+                </p>
+              </div>
+              <Badge tone={st.tone}>{st.label}</Badge>
+              {p.status === "pending" && p.checkout_url && fresh(p) && (
+                <Button size="sm" variant="ghost" onClick={() => onContinue(p)}>Оплатить</Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }

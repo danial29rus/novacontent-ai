@@ -31,3 +31,11 @@ export const TOOL_LABELS: Record<string, string> = {
   ideas: "Идеи",
   script: "Сценарий видео",
 };
+
+export const PAYMENT_STATUS: Record<string, { label: string; tone: "green" | "amber" | "rose" | "zinc" }> = {
+  pending: { label: "Ожидает оплаты", tone: "amber" },
+  succeeded: { label: "Оплачен", tone: "green" },
+  failed: { label: "Не прошёл", tone: "rose" },
+  canceled: { label: "Отменён", tone: "zinc" },
+};
+export const PAYMENT_METHOD: Record<string, string> = { sbp: "СБП", card: "Карта" };

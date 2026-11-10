@@ -13,6 +13,7 @@ from app.api.v1 import (
     auth,
     billing,
     chats,
+    external,
     growth,
     knowledge,
     projects,
@@ -49,7 +50,7 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_cr
                    allow_methods=["*"], allow_headers=["*"])
 
 api = APIRouter(prefix="/api/v1")
-ROUTERS = (auth, billing, chats, agents, knowledge, projects, services, growth, support,
+ROUTERS = (auth, billing, chats, external, agents, knowledge, projects, services, growth, support,
            admin, admin_users, admin_growth)
 for module in ROUTERS:
     api.include_router(module.router)

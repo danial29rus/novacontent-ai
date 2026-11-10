@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, DatabaseBackup, Mail, Megaphone, Ticket, Activity, Coins, CreditCard, LifeBuoy, MessageSquare, Search, TrendingUp, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ProviderDot } from "@/components/Brand";
@@ -12,8 +12,8 @@ import { TicketRow, TicketThread, type Ticket as SupportTicket, type TicketMessa
 import { Spinner } from "@/components/ui";
 import { PromoTab, TrafficTab } from "./Growth";
 import { UserDetail } from "./UserDetail";
-import { bytes, date, number, rub, tokens } from "@/lib/format";
-import type { AIModel, User } from "@/lib/types";
+import { bytes, date, number, PAYMENT_METHOD, PAYMENT_STATUS, rub, tokens } from "@/lib/format";
+import type { AdminPayment, AIModel, User } from "@/lib/types";
 
 type Overview = {
   users: number;
@@ -330,29 +330,121 @@ function ModelsTab() {
   );
 }
 
+type PaymentsPage = { items: AdminPayment[]; summary: Record<string, { count: number; amount_kopeks: number }> };
+
 function PaymentsTab() {
-  const { data = [] } = useQuery({ queryKey: ["admin", "payments"], queryFn: () => get<any[]>("/admin/payments") });
+  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [q, setQ] = useState("");
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState<number | null>(null);
+  const [checking, setChecking] = useState<number | null>(null);
+  const qc = useQueryClient();
+  const params = new URLSearchParams({ limit: "100", ...(statusFilter && { status_filter: statusFilter }), ...(query && { q: query }) });
+  const { data, isFetching } = useQuery({
+    queryKey: ["admin", "payments", statusFilter, query],
+    queryFn: () => get<PaymentsPage>(`/admin/payments?${params}`),
+    refetchInterval: 30_000,
+  });
+  const items = data?.items ?? [];
+  const summary = data?.summary ?? {};
+  const total = Object.values(summary).reduce((n, s) => n + s.count, 0);
+
+  const recheck = async (id: number) => {
+    setChecking(id);
+    try {
+      const p = await post<AdminPayment>(`/admin/payments/${id}/refresh`, {});
+      toast.success(`#${id}: ${PAYMENT_STATUS[p.status]?.label ?? p.status}${p.provider_status ? ` (PayHot: ${p.provider_status})` : ""}`);
+      if (p.error) toast.error(p.error);
+      qc.invalidateQueries({ queryKey: ["admin", "payments"] });
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setChecking(null);
+    }
+  };
+
+  const chips = [{ id: "", label: "Все", count: total, amount: 0 }, ...Object.entries(PAYMENT_STATUS).map(([id, s]) => ({
+    id, label: s.label, count: summary[id]?.count ?? 0, amount: summary[id]?.amount_kopeks ?? 0,
+  }))];
+
   return (
-    <Card className="overflow-x-auto">
-      <table className="w-full min-w-[560px] text-sm">
-        <thead className="text-left text-xs uppercase tracking-wider text-zinc-500">
-          <tr><th className="px-4 py-3">#</th><th className="px-4 py-3">Пользователь</th><th className="px-4 py-3">Сумма</th><th className="px-4 py-3">Токены</th><th className="px-4 py-3">Статус</th><th className="px-4 py-3">Дата</th></tr>
-        </thead>
-        <tbody>
-          {data.map((p) => (
-            <tr key={p.id} className="border-t border-white/[0.04]">
-              <td className="px-4 py-3 text-zinc-500">{p.id}</td>
-              <td className="px-4 py-3">{p.email}</td>
-              <td className="px-4 py-3 font-semibold">{rub(p.amount_kopeks)}</td>
-              <td className="px-4 py-3 font-mono">{tokens(p.tokens)}</td>
-              <td className="px-4 py-3"><Badge tone={p.status === "succeeded" ? "green" : p.status === "pending" ? "amber" : "rose"}>{p.status}</Badge> <span className="text-xs text-zinc-500">{p.provider}</span></td>
-              <td className="px-4 py-3 text-zinc-400">{date(p.created_at)}</td>
-            </tr>
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap gap-2">
+          {chips.map((c) => (
+            <button key={c.id} onClick={() => setStatusFilter(c.id)} className={clsx("rounded-xl border px-3 py-1.5 text-xs font-semibold transition",
+              statusFilter === c.id ? "border-nova-400/50 bg-nova-500/15 text-white" : "border-white/10 text-zinc-400 hover:text-white")}>
+              {c.label} · {number(c.count)}{c.id && c.amount ? ` · ${rub(c.amount)}` : ""}
+            </button>
           ))}
-        </tbody>
-      </table>
-      {!data.length && <p className="py-10 text-center text-sm text-zinc-500">Платежей пока нет</p>}
-    </Card>
+        </div>
+        <form onSubmit={(e) => { e.preventDefault(); setQuery(q.trim()); }} className="relative sm:w-72">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Email, №, uuid заказа или ID PayHot" className="field h-10 pl-9 text-sm" />
+        </form>
+      </div>
+      <Card className="overflow-x-auto">
+        <table className="w-full min-w-[820px] text-sm">
+          <thead className="text-left text-xs uppercase tracking-wider text-zinc-500">
+            <tr>
+              <th className="px-4 py-3">№</th><th className="px-4 py-3">Пользователь</th><th className="px-4 py-3">Сумма</th>
+              <th className="px-4 py-3">Искры</th><th className="px-4 py-3">Статус</th><th className="px-4 py-3">Создан</th><th className="px-4 py-3" />
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((p) => {
+              const st = PAYMENT_STATUS[p.status] ?? { label: p.status, tone: "zinc" as const };
+              return (
+                <Fragment key={p.id}>
+                  <tr className="cursor-pointer border-t border-white/[0.04] hover:bg-white/[0.02]" onClick={() => setOpen(open === p.id ? null : p.id)}>
+                    <td className="px-4 py-3 text-zinc-500">{p.id}</td>
+                    <td className="px-4 py-3">{p.email}</td>
+                    <td className="px-4 py-3 font-semibold">{rub(p.amount_kopeks)}</td>
+                    <td className="px-4 py-3 font-mono">{tokens(p.tokens)}{p.bonus_sparks > 0 && <span className="text-xs text-amber-300"> +{number(p.bonus_sparks)}</span>}</td>
+                    <td className="px-4 py-3">
+                      <Badge tone={st.tone}>{st.label}</Badge>
+                      {p.error && p.status === "pending" && <span className="ml-1 text-xs text-rose-300" title={p.error}>⚠</span>}
+                    </td>
+                    <td className="px-4 py-3 text-zinc-400">{date(p.created_at)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {p.status === "pending" && p.provider === "payhot" && p.provider_payment_id && (
+                        <Button size="sm" variant="ghost" loading={checking === p.id} onClick={(e) => { e.stopPropagation(); recheck(p.id); }}>Проверить</Button>
+                      )}
+                    </td>
+                  </tr>
+                  {open === p.id && (
+                    <tr className="bg-white/[0.02]">
+                      <td colSpan={7} className="px-4 pb-4 pt-1">
+                        <dl className="grid gap-x-6 gap-y-1.5 text-xs sm:grid-cols-2">
+                          <Detail label="Заказ (uuid)" value={p.order_id} mono />
+                          <Detail label="Провайдер" value={`${p.provider}${p.method ? ` · ${PAYMENT_METHOD[p.method] ?? p.method}` : ""}`} />
+                          <Detail label="Статус в PayHot" value={p.provider_status ?? "—"} />
+                          <Detail label="ID в PayHot" value={p.provider_payment_id ?? "—"} mono />
+                          <Detail label="ID пользователя" value={String(p.user_id)} />
+                          <Detail label="Оплачен" value={p.paid_at ? date(p.paid_at) : "—"} />
+                          <Detail label="Обновлён" value={date(p.updated_at)} />
+                          {p.error && <div className="sm:col-span-2"><Detail label="Последняя ошибка" value={p.error} error /></div>}
+                        </dl>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+        {!items.length && <p className="py-10 text-center text-sm text-zinc-500">{isFetching ? "Загрузка…" : "Платежей не найдено"}</p>}
+      </Card>
+    </div>
+  );
+}
+
+function Detail({ label, value, mono, error }: { label: string; value: string; mono?: boolean; error?: boolean }) {
+  return (
+    <div className="flex gap-2">
+      <dt className="shrink-0 text-zinc-500">{label}:</dt>
+      <dd className={clsx("min-w-0 break-all", mono && "font-mono", error ? "text-rose-300" : "text-zinc-300")}>{value}</dd>
+    </div>
   );
 }
 

@@ -171,13 +171,48 @@ async def update_model(model_id: int, body: AIModelUpdate, actor: AdminUser, db:
     return model
 
 
+def _admin_payment(p: Payment, email: str) -> dict:
+    return {"id": p.id, "order_id": p.order_id, "user_id": p.user_id, "email": email, "amount_kopeks": p.amount_kopeks,
+            "tokens": p.tokens, "bonus_sparks": p.bonus_sparks, "status": p.status, "provider": p.provider,
+            "provider_status": p.provider_status, "provider_payment_id": p.provider_payment_id,
+            "method": p.method, "error": p.error, "created_at": p.created_at, "updated_at": p.updated_at,
+            "paid_at": p.paid_at}
+
+
 @router.get("/payments")
-async def payments(_: AdminUser, db: DB) -> list[dict]:
+async def payments(_: AdminUser, db: DB, status_filter: str | None = None, q: str | None = None,
+                   offset: int = 0, limit: int = 50) -> dict:
+    """All top-up requests, newest first, with counts per status for the filter chips."""
+    filters = []
+    if q:
+        term = q.strip()
+        conditions = [User.email.ilike(f"%{term}%"), Payment.provider_payment_id == term,
+                      Payment.order_id == term]
+        if term.isdigit():
+            conditions.append(Payment.id == int(term))
+        filters.append(or_(*conditions))
+    summary = {status_: {"count": count, "amount_kopeks": int(amount)} for status_, count, amount in (await db.execute(
+        select(Payment.status, func.count(), func.coalesce(func.sum(Payment.amount_kopeks), 0))
+        .join(User, User.id == Payment.user_id).where(*filters).group_by(Payment.status)
+    )).all()}
+    if status_filter:
+        filters.append(Payment.status == status_filter)
     rows = (await db.execute(
-        select(Payment, User.email).join(User, User.id == Payment.user_id).order_by(Payment.id.desc()).limit(100)
+        select(Payment, User.email).join(User, User.id == Payment.user_id).where(*filters)
+        .order_by(Payment.id.desc()).offset(offset).limit(min(limit, 200))
     )).all()
-    return [{"id": p.id, "email": email, "amount_kopeks": p.amount_kopeks, "tokens": p.tokens,
-             "status": p.status, "provider": p.provider, "created_at": p.created_at} for p, email in rows]
+    return {"items": [_admin_payment(p, email) for p, email in rows], "summary": summary}
+
+
+@router.post("/payments/{payment_id}/refresh")
+async def refresh_payment(payment_id: int, _: AdminUser, db: DB) -> dict:
+    """Re-check one payment with PayHot right now (e.g. a webhook never came)."""
+    payment = await db.get(Payment, payment_id)
+    if payment is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Платёж не найден")
+    await billing.refresh_payment(db, payment)
+    email = await db.scalar(select(User.email).where(User.id == payment.user_id))
+    return _admin_payment(payment, email)
 
 
 BACKUP_DIR = Path("/backups")

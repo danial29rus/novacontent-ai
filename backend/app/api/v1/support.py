@@ -1,9 +1,10 @@
 """In-app support tickets. Users talk to support inside the site; no email involved."""
 
+import logging
 from datetime import datetime
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -230,3 +231,17 @@ async def admin_close(ticket_id: int, actor: AdminUser, db: DB) -> None:
 async def admin_reopen(ticket_id: int, actor: AdminUser, db: DB) -> None:
     await _set_closed(db, await _any(db, ticket_id), actor, False, staff=True)
     await db.commit()
+
+
+class ClientErrorIn(BaseModel):
+    message: str = Field(max_length=2000)
+    stack: str = Field("", max_length=4000)
+    url: str = Field("", max_length=500)
+
+
+@router.post("/client-errors", status_code=204, dependencies=[RateLimited])
+async def client_error(body: ClientErrorIn, request: Request) -> None:
+    """Interface crashes reported by the browser, so they show up in `docker compose logs api`."""
+    logging.getLogger("nova.frontend").error(
+        "UI crash at %s (%s): %s\n%s", body.url, request.headers.get("user-agent", "")[:120],
+        body.message, body.stack)

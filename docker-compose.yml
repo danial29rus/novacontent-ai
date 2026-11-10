@@ -48,6 +48,19 @@ services:
       options: { max-size: "20m", max-file: "5" }
     restart: unless-stopped
 
+  worker:  # polls PayHot every 30 s and credits / closes pending payments
+    build: ./backend
+    command: ["python", "-m", "app.worker"]
+    env_file: ${ENV_FILE:-.env}
+    environment:
+      DATABASE_URL: postgresql+asyncpg://nova:${POSTGRES_PASSWORD:-nova}@db:5432/nova
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      api:
+        condition: service_healthy  # api runs the migrations first
+    logging: *logging
+    restart: unless-stopped
+
   backup:
     build: ./backup
     environment:

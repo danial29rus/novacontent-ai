@@ -33,7 +33,14 @@ class Settings(BaseSettings):
     # Referral program
     referral_signup_bonus: int = 50  # sparks for the invited friend on sign-up
     referral_percent: int = 10  # % of the friend's paid sparks credited to the referrer
-    payment_provider: str = "mock"  # mock only; add the chosen provider as a dedicated adapter
+    payment_provider: str = "mock"  # mock | payhot
+    payhot_api_key: str | None = None  # phk_v2_... (live) or phk_test_v2_... (sandbox)
+    payhot_webhook_secret: str | None = None  # "Webhook signing secret" from the PayHot cabinet
+    payhot_sandbox: bool = False
+    payhot_base_url: str = "https://app.pay.hot"
+    # Tokens for the external payments API (Authorization: Bearer <token>). Empty = API closed.
+    payments_api_tokens: list[str] = Field(default_factory=list)
+    payhot_methods: list[str] = Field(default_factory=lambda: ["sbp"])  # first one is the default
     public_url: str = "http://localhost:8080"
 
     # Context window management for chats.
@@ -80,7 +87,12 @@ class Settings(BaseSettings):
         warnings = []
         if not self.openai_api_key:
             warnings.append("OPENAI_API_KEY пуст — чаты и услуги будут отвечать «модель недоступна»")
-        warnings.append("Платёжная система не подключена — пополнение баланса закрыто")
+        if self.payment_provider != "payhot":
+            warnings.append("Платёжная система не подключена — пополнение баланса закрыто")
+        elif not (self.payhot_api_key and self.payhot_webhook_secret):
+            warnings.append("PAYHOT_API_KEY / PAYHOT_WEBHOOK_SECRET пусты — пополнение баланса закрыто")
+        elif self.payhot_sandbox or (self.payhot_api_key or "").startswith("phk_test_"):
+            warnings.append("PAYHOT_SANDBOX=true — платежи тестовые, деньги не списываются")
         if not self.mail_enabled:
             warnings.append("SMTP не настроен — письма (поддержка, восстановление пароля) не отправляются")
         return warnings

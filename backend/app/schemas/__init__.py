@@ -118,17 +118,23 @@ class TopupIn(BaseModel):
     """Either a ready package or a custom amount in rubles."""
 
     package_slug: str | None = None
-    amount_rub: int | None = Field(None, ge=500, le=500_000)
+    amount_rub: int | None = Field(None, ge=100, le=500_000)  # billing.MIN/MAX_TOPUP_RUB
     promo_code: str | None = Field(None, max_length=40)
+    payment_method: str | None = Field(None, max_length=32)  # sbp | card, see PAYHOT_METHODS
 
 
 class PaymentOut(ORM):
     id: int
+    order_id: str
     amount_kopeks: int
     tokens: int
+    bonus_sparks: int
     status: str
     provider: str
+    method: str | None
+    checkout_url: str | None
     created_at: datetime
+    paid_at: datetime | None
 
 
 # --- Chats ---------------------------------------------------------------------------------------

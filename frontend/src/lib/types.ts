@@ -145,3 +145,26 @@ export type Estimates = {
   per_message: { model: string; slug: string; sparks: number; sparks_rag: number }[];
   services: { title: string; emoji: string; sparks: number }[];
 };
+
+export type PaymentStatus = "pending" | "succeeded" | "failed" | "canceled";
+export type Payment = {
+  id: number;
+  order_id: string;
+  amount_kopeks: number;
+  tokens: number;
+  bonus_sparks: number;
+  status: PaymentStatus;
+  provider: string;
+  method: string | null;
+  checkout_url: string | null;
+  created_at: string;
+  paid_at: string | null;
+};
+export type AdminPayment = Omit<Payment, "checkout_url"> & {
+  user_id: number;
+  email: string;
+  provider_status: string | null;
+  provider_payment_id: string | null;
+  error: string | null;
+  updated_at: string;
+};

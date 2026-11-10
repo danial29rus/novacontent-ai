@@ -1,6 +1,7 @@
+import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import BigInteger, Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -65,9 +66,17 @@ class Payment(TimestampMixin, Base):
     package_id: Mapped[int | None] = mapped_column(ForeignKey("topup_packages.id", ondelete="SET NULL"))
     amount_kopeks: Mapped[int] = mapped_column(Integer)
     tokens: Mapped[int] = mapped_column(BigInteger)
-    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | succeeded | canceled
+    status: Mapped[str] = mapped_column(String(16), default="pending")  # pending | succeeded | failed | canceled
     provider: Mapped[str] = mapped_column(String(32))
     provider_payment_id: Mapped[str | None] = mapped_column(String(128), unique=True)
+    # Our order id: a uuid4 sent to PayHot as merchant_order_reference and shown to the user.
+    order_id: Mapped[str] = mapped_column(String(36), unique=True, default=lambda: str(uuid.uuid4()))
+    provider_status: Mapped[str | None] = mapped_column(String(32))  # raw PayHot status, for the admin
+    method: Mapped[str | None] = mapped_column(String(32))  # sbp | card
+    checkout_url: Mapped[str | None] = mapped_column(Text)  # so the user can come back to an unpaid payment
+    error: Mapped[str | None] = mapped_column(String(300))  # last provider error, for the admin
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
+                                                 onupdate=func.now())
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     promo_id: Mapped[int | None] = mapped_column(ForeignKey("promo_codes.id", ondelete="SET NULL"))
     bonus_sparks: Mapped[int] = mapped_column(BigInteger, default=0)  # from the promo, included in `tokens`
