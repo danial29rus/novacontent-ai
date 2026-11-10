@@ -3,6 +3,10 @@
     docker compose exec api python -m app.cli admin EMAIL [PASSWORD]
         Make EMAIL an administrator (creating the account if needed) and set its password.
         Without PASSWORD a random one is generated and printed.
+
+    docker compose exec api python -m app.cli users COUNT [BALANCE]
+        Create COUNT users with random emails and passwords, BALANCE sparks each
+        (default WELCOME_TOKENS). Prints CSV: id,email,password,balance.
 """
 
 import asyncio
@@ -38,7 +42,31 @@ async def make_admin(email: str, password: str | None) -> None:
     print(f"Вход: {settings.public_url}/login  →  меню «Админка»")
 
 
+async def make_users(count: int, balance: int) -> None:
+    domain = settings.public_url.split("//")[-1].split("/")[0].split(":")[0] or "nova.local"
+    rows = []
+    async with SessionLocal() as db:
+        for _ in range(count):
+            email = f"user-{secrets.token_hex(4)}@{domain}"
+            password = secrets.token_urlsafe(9)
+            user = User(email=email, name=email.split("@")[0], password_hash=hash_password(password),
+                        ref_code=new_ref_code(), signup_source="generated")
+            db.add(user)
+            await db.flush()
+            if balance:
+                await billing.apply(db, user.id, balance, "welcome", "Стартовый баланс")
+            rows.append((user.id, email, password, balance))
+        await db.commit()
+    print("id,email,password,balance")
+    for row in rows:
+        print(",".join(map(str, row)))
+
+
 def main() -> None:
+    if len(sys.argv) >= 3 and sys.argv[1] == "users" and sys.argv[2].isdigit():
+        balance = int(sys.argv[3]) if len(sys.argv) > 3 else settings.welcome_tokens
+        asyncio.run(make_users(min(int(sys.argv[2]), 10_000), balance))
+        return
     if len(sys.argv) >= 3 and sys.argv[1] == "admin":
         asyncio.run(make_admin(sys.argv[2], sys.argv[3] if len(sys.argv) > 3 else None))
     else:

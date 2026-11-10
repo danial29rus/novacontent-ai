@@ -6,7 +6,6 @@ GET  /api/v1/external/payments/{transaction_id}   payment status (kept fresh by 
 The caller's transaction_id (uuid) becomes our order_id and PayHot's merchant_order_reference.
 When paid, the user gets sparks by the same rules as a top-up on the site.
 """
-import asyncio
 import hmac
 import logging
 import uuid
@@ -50,38 +49,17 @@ class PaymentStatusOut(BaseModel):
     status: str  # pending | succeeded | failed | canceled
     paid: bool
     payment_url: str | None  # PayHot checkout page ("go to payment" button)
-    qr_url: str | None = None  # direct SBP bank link to render as a QR code; None if PayHot has none yet
+    qr_url: str | None = None  # link to render as a QR code (the PayHot payment page, opens SBP)
     created_at: datetime
     paid_at: datetime | None
 
 
-async def _qr_url(payment: Payment, attempts: int = 1) -> str | None:
-    """Ask PayHot for the direct SBP link. It is prepared asynchronously, so retry briefly."""
-    if payment.status != "pending" or not payment.provider_payment_id or payment.method != "sbp":
-        return None
-    for attempt in range(attempts):
-        try:
-            link = await payhot.client().get_sbp_link(payment.provider_payment_id)
-        except payhot.PayHotError as error:
-            if error.status == 409:  # PayHot has no direct link for this payment
-                return None
-            log.warning("external qr for %s: %s", payment.order_id, error)
-        else:
-            if link.status == "available" and link.url:
-                return link.url
-            if link.status != "pending":  # expired, or no direct link (hosted_checkout_required)
-                return None
-        if attempt + 1 < attempts:
-            await asyncio.sleep(1.5)
-    return None
-
-
-def _out(payment: Payment, qr_url: str | None = None) -> PaymentStatusOut:
+def _out(payment: Payment) -> PaymentStatusOut:
+    link = payment.checkout_url if payment.status == "pending" else None
     return PaymentStatusOut(
         transaction_id=payment.order_id, user_id=payment.user_id, amount_rub=payment.amount_kopeks // 100,
         sparks=payment.tokens, status=payment.status, paid=payment.status == "succeeded",
-        payment_url=payment.checkout_url if payment.status == "pending" else None,
-        qr_url=qr_url, created_at=payment.created_at, paid_at=payment.paid_at,
+        payment_url=link, qr_url=link, created_at=payment.created_at, paid_at=payment.paid_at,
     )
 
 
@@ -99,7 +77,7 @@ async def create_payment(body: CreatePaymentIn, db: DB) -> PaymentStatusOut:
         if existing.user_id != body.user_id or existing.amount_kopeks != body.amount_rub * 100:
             raise HTTPException(status.HTTP_409_CONFLICT,
                                 "transaction_id уже использован с другим пользователем или суммой")
-        return _out(existing, await _qr_url(existing))
+        return _out(existing)
 
     if not billing.payments_enabled():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Приём оплаты отключён")
@@ -113,14 +91,13 @@ async def create_payment(body: CreatePaymentIn, db: DB) -> PaymentStatusOut:
         log.error("external create failed for %s: %s", transaction_id, error)
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Платёжная система не создала платёж, повторите позже") \
             from None
-    return _out(payment, await _qr_url(payment, attempts=3))
+    return _out(payment)
 
 
 @router.get("/payments/{transaction_id}", response_model=PaymentStatusOut, dependencies=Authorized)
 async def payment_status(transaction_id: uuid.UUID, db: DB) -> PaymentStatusOut:
-    """Status from our database (the worker syncs it with PayHot every 30 s), plus a fresh QR link
-    while the payment is unpaid."""
+    """Status from our database; the worker syncs it with PayHot every 30 s."""
     payment = await db.scalar(select(Payment).where(Payment.order_id == str(transaction_id)))
     if payment is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Платёж не найден")
-    return _out(payment, await _qr_url(payment))
+    return _out(payment)
